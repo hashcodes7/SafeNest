@@ -48,18 +48,19 @@ class UserProvider extends ChangeNotifier {
 
   // --- Collection Methods ---
 
-  Future<void> addCollection(String name) async {
+  Future<void> addCollection(String name, {int? iconCodePoint}) async {
     if (_currentUser == null) return;
     final newCollection = Collection(
       collectionId: const Uuid().v4(),
       collectionName: name,
+      iconCodePoint: iconCodePoint,
       fields: [],
     );
     _currentUser!.collections.add(newCollection);
     await _save();
   }
 
-  Future<void> editCollection(String id, String newName) async {
+  Future<void> editCollection(String id, String newName, {int? iconCodePoint}) async {
     if (_currentUser == null) return;
     final index = _currentUser!.collections.indexWhere((c) => c.collectionId == id);
     if (index != -1) {
@@ -67,6 +68,7 @@ class UserProvider extends ChangeNotifier {
       _currentUser!.collections[index] = Collection(
         collectionId: old.collectionId,
         collectionName: newName,
+        iconCodePoint: iconCodePoint,
         fields: old.fields,
       );
       await _save();

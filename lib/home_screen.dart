@@ -9,39 +9,97 @@ import 'collection_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  static const List<IconData> predefinedIcons = [
+    Icons.folder, Icons.star, Icons.favorite, Icons.work,
+    Icons.home, Icons.music_note, Icons.camera, Icons.book,
+    Icons.pets, Icons.flight, Icons.train, Icons.directions_car,
+    Icons.shopping_cart, Icons.restaurant, Icons.local_cafe, Icons.local_bar,
+    Icons.lock, Icons.shield, Icons.key, Icons.wallet,
+    Icons.notes, Icons.article, Icons.code, Icons.build,
+  ];
+
   void _showCollectionDialog(BuildContext context, UserProvider provider, {Collection? collection}) {
     final nameController = TextEditingController(text: collection?.collectionName);
+    int? selectedIconCodePoint = collection?.iconCodePoint;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(collection == null ? 'New Collection' : 'Edit Collection'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(labelText: 'Collection Name'),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                if (name.isNotEmpty) {
-                  if (collection == null) {
-                    provider.addCollection(name);
-                  } else {
-                    provider.editCollection(collection.collectionId, name);
-                  }
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(collection == null ? 'New Collection' : 'Edit Collection'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Collection Name'),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Select an Icon (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemCount: predefinedIcons.length,
+                        itemBuilder: (context, index) {
+                          final iconData = predefinedIcons[index];
+                          final isSelected = selectedIconCodePoint == iconData.codePoint;
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                selectedIconCodePoint = iconData.codePoint;
+                              });
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
+                                borderRadius: BorderRadius.circular(8),
+                                border: isSelected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : null,
+                              ),
+                              child: Icon(
+                                iconData,
+                                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    if (name.isNotEmpty) {
+                      if (collection == null) {
+                        provider.addCollection(name, iconCodePoint: selectedIconCodePoint);
+                      } else {
+                        provider.editCollection(collection.collectionId, name, iconCodePoint: selectedIconCodePoint);
+                      }
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          }
         );
       },
     );
@@ -170,7 +228,12 @@ class HomeScreen extends StatelessWidget {
                     return false;
                   },
                   child: ListTile(
-                    leading: const Icon(Icons.folder, size: 36),
+                    leading: Icon(
+                      collection.iconCodePoint != null
+                          ? IconData(collection.iconCodePoint!, fontFamily: 'MaterialIcons')
+                          : Icons.folder,
+                      size: 36,
+                    ),
                     title: Text(collection.collectionName),
                     subtitle: Text('${collection.fields.length} fields'),
                     onTap: () {
