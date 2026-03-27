@@ -161,17 +161,54 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              child: Text(
-                'SafeNest',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 24,
-                ),
-              ),
+            Consumer<UserProvider>(
+              builder: (context, provider, child) {
+                final user = provider.currentUser;
+                return DrawerHeader(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.tertiary,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Image.asset('assets/logo.png', height: 48, errorBuilder: (c, e, s) => const Icon(Icons.security, size: 48, color: Colors.white)),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'SafeNest Vault',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (user != null)
+                        Text(
+                          'Secured locally for ${user.userName}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.home),
@@ -255,6 +292,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: TextField(
                   controller: _searchController,
+                  autofocus: false,
+                  textInputAction: TextInputAction.search,
+                  onTapOutside: (event) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
                   onChanged: (val) {
                     setState(() {
                       _searchQuery = val;
@@ -299,23 +341,30 @@ class _HomeScreenState extends State<HomeScreen> {
                           final collection = collections[index];
                           return Card(
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                                width: 1,
+                              ),
+                            ),
+                            color: Theme.of(context).colorScheme.surfaceContainerLow,
                             clipBehavior: Clip.antiAlias,
-                            elevation: 2,
+                            elevation: 0,
                             child: Dismissible(
                               key: Key(collection.collectionId),
                               direction: DismissDirection.horizontal,
                               background: Container(
-                                color: Colors.red,
+                                color: Theme.of(context).colorScheme.errorContainer,
                                 alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: const Icon(Icons.delete, color: Colors.white),
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Icon(Icons.delete_sweep_rounded, color: Theme.of(context).colorScheme.onErrorContainer, size: 28),
                               ),
                               secondaryBackground: Container(
-                                color: Colors.blue,
+                                color: Theme.of(context).colorScheme.secondaryContainer,
                                 alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: const Icon(Icons.edit, color: Colors.white),
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSecondaryContainer, size: 28),
                               ),
                               confirmDismiss: (direction) async {
                                 if (collection.isLocked) {
@@ -328,7 +377,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   await showDialog(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      title: const Text('Delete Collection'),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                      title: const Text('Delete Collection', style: TextStyle(fontWeight: FontWeight.bold)),
                                       content: const Text('Are you sure you want to delete this collection and all its fields?'),
                                       actions: [
                                         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -337,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             delete = true;
                                             Navigator.pop(ctx);
                                           },
-                                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                          child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.bold)),
                                         ),
                                       ],
                                     ),
@@ -352,32 +402,46 @@ class _HomeScreenState extends State<HomeScreen> {
                                 }
                                 return false;
                               },
-                              child: ListTile(
-                                leading: Icon(
-                                  collection.iconCodePoint != null
-                                      ? IconData(collection.iconCodePoint!, fontFamily: 'MaterialIcons')
-                                      : Icons.folder,
-                                  size: 36,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                    child: Icon(
+                                      collection.iconCodePoint != null
+                                          ? IconData(collection.iconCodePoint!, fontFamily: 'MaterialIcons')
+                                          : Icons.folder_rounded,
+                                      size: 28,
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    collection.collectionName,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+                                  ),
+                                  subtitle: Text(
+                                    '${collection.fields.length} file${collection.fields.length == 1 ? '' : 's'}',
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                  ),
+                                  trailing: collection.isLocked
+                                      ? Icon(Icons.lock_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5))
+                                      : const Icon(Icons.chevron_right_rounded),
+                                  onTap: () async {
+                                    if (collection.isLocked) {
+                                      final authenticated = await _authenticate();
+                                      if (!authenticated) return;
+                                    }
+                                    if (mounted) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CollectionScreen(collectionId: collection.collectionId),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
-                                title: Text(collection.collectionName),
-                                subtitle: Text('${collection.fields.length} fields'),
-                                trailing: collection.isLocked
-                                    ? Icon(Icons.lock, color: Colors.grey.withOpacity(0.5))
-                                    : null,
-                                onTap: () async {
-                                  if (collection.isLocked) {
-                                    final authenticated = await _authenticate();
-                                    if (!authenticated) return;
-                                  }
-                                  if (mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => CollectionScreen(collectionId: collection.collectionId),
-                                      ),
-                                    );
-                                  }
-                                },
                               ),
                             ),
                           );

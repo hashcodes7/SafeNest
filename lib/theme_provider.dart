@@ -88,7 +88,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       scaffoldBackgroundColor: scaffoldBackgroundColor ?? baseTheme.scaffoldBackgroundColor,
       useMaterial3: true,
-      textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme),
+      textTheme: GoogleFonts.outfitTextTheme(baseTheme.textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: surfaceColor ?? baseTheme.appBarTheme.backgroundColor,
       ),

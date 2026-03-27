@@ -18,7 +18,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    _nameController = TextEditingController(text: userProvider.currentUser?.userName ?? '');
+    _nameController = TextEditingController(
+      text: userProvider.currentUser?.userName ?? '',
+    );
   }
 
   @override
@@ -35,10 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const CircleAvatar(
-              radius: 50,
-              child: Icon(Icons.person, size: 50),
-            ),
+            const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
             const SizedBox(height: 24),
             TextField(
               controller: _nameController,
@@ -52,9 +51,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () {
                 final newName = _nameController.text.trim();
                 if (newName.isNotEmpty) {
-                  Provider.of<UserProvider>(context, listen: false).updateUserName(newName);
+                  Provider.of<UserProvider>(
+                    context,
+                    listen: false,
+                  ).updateUserName(newName);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile updated successfully!')),
+                    const SnackBar(
+                      content: Text('Profile updated successfully!'),
+                    ),
                   );
                 }
               },
@@ -70,7 +74,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   await prefs.setBool('is_logged_in', false);
                   if (context.mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const FirstTimeScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const FirstTimeScreen(),
+                      ),
                       (route) => false,
                     );
                   }

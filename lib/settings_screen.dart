@@ -8,113 +8,160 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Appearance',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return Column(
-                children: [
-                  ListTile(
-                    title: const Text('Theme Mode'),
-                    subtitle: Text(themeProvider.themeMode.name.capitalize()),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => _showThemeModeDialog(context, themeProvider),
+      appBar: AppBar(title: const Text('Appearance')),
+      body: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Theme',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  const Divider(),
-                  ListTile(
-                    title: const Text('App Color Theme'),
-                    subtitle: Text(themeProvider.themeColor.name),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => _showThemeColorDialog(context, themeProvider),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SegmentedButton<ThemeMode>(
+                  style: ButtonStyle(
+                    shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
                   ),
-                ],
-              );
-            },
-          ),
-        ],
+                  segments: const [
+                    ButtonSegment(value: ThemeMode.system, label: Text('System')),
+                    ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                    ButtonSegment(value: ThemeMode.dark, label: Text('Dark', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  selected: {themeProvider.themeMode},
+                  onSelectionChanged: (Set<ThemeMode> newSelection) {
+                    themeProvider.setThemeMode(newSelection.first);
+                  },
+                ),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                height: 250,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: AppThemeColor.values.length,
+                  itemBuilder: (context, index) {
+                    final colorTheme = AppThemeColor.values[index];
+                    final isSelected = themeProvider.themeColor == colorTheme;
+                    
+                    return GestureDetector(
+                      onTap: () => themeProvider.setThemeColor(colorTheme),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 110,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                                  width: 3,
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    top: 16,
+                                    left: 16,
+                                    right: 16,
+                                    child: Container(
+                                      height: 16,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 48,
+                                    left: 16,
+                                    child: Container(
+                                      width: 48,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          Positioned(
+                                            top: 8,
+                                            left: 8,
+                                            child: Container(
+                                              width: 32,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: colorTheme.color,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 16,
+                                    left: 16,
+                                    right: 16,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 16,
+                                          height: 16,
+                                          decoration: BoxDecoration(
+                                            color: colorTheme.color.withOpacity(0.5),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Container(
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              colorTheme.name,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
-  }
-
-  void _showThemeModeDialog(BuildContext context, ThemeProvider themeProvider) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select Theme Mode'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ThemeMode.values.map((mode) {
-              return RadioListTile<ThemeMode>(
-                title: Text(mode.name.capitalize()),
-                value: mode,
-                groupValue: themeProvider.themeMode,
-                onChanged: (value) {
-                  if (value != null) {
-                    themeProvider.setThemeMode(value);
-                  }
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showThemeColorDialog(
-    BuildContext context,
-    ThemeProvider themeProvider,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select App Color Theme'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: AppThemeColor.values.map((colorTheme) {
-                return RadioListTile<AppThemeColor>(
-                  title: Text(colorTheme.name),
-                  value: colorTheme,
-                  groupValue: themeProvider.themeColor,
-                  secondary: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: colorTheme.color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    if (value != null) {
-                      themeProvider.setThemeColor(value);
-                    }
-                    Navigator.pop(context);
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-extension StringExtension on String {
-  String capitalize() {
-    if (isEmpty) return this;
-    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }

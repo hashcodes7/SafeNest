@@ -194,24 +194,29 @@ class _FieldTileState extends State<_FieldTile> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          width: 1,
+        ),
       ),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
-      elevation: 2,
+      elevation: 0,
       child: Dismissible(
         key: Key(field.fieldId),
         direction: DismissDirection.horizontal,
         background: Container(
-          color: Colors.red,
+          color: Theme.of(context).colorScheme.errorContainer,
           alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: const Icon(Icons.delete, color: Colors.white),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Icon(Icons.delete_sweep_rounded, color: Theme.of(context).colorScheme.onErrorContainer, size: 28),
         ),
         secondaryBackground: Container(
-          color: Colors.blue,
+          color: Theme.of(context).colorScheme.secondaryContainer,
           alignment: Alignment.centerRight,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: const Icon(Icons.edit, color: Colors.white),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSecondaryContainer, size: 28),
         ),
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
@@ -219,7 +224,8 @@ class _FieldTileState extends State<_FieldTile> {
             await showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: const Text('Delete Field'),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                title: const Text('Delete Field', style: TextStyle(fontWeight: FontWeight.bold)),
                 content: const Text(
                   'Are you sure you want to delete this field?',
                 ),
@@ -233,9 +239,9 @@ class _FieldTileState extends State<_FieldTile> {
                       delete = true;
                       Navigator.pop(ctx);
                     },
-                    child: const Text(
+                    child: Text(
                       'Delete',
-                      style: TextStyle(color: Colors.red),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -287,8 +293,8 @@ class _FieldTileState extends State<_FieldTile> {
                     ),
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: 12,
+                    right: 12,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.5),
@@ -309,27 +315,33 @@ class _FieldTileState extends State<_FieldTile> {
                   ),
                 ],
               ),
-            ListTile(
-              title: Text(field.fieldName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (field.url != null)
-                    Text(
-                      '${field.url}',
-                      style: const TextStyle(fontSize: 12, color: Colors.blue),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  if (field.description != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        '${field.description}',
-                        style: const TextStyle(fontSize: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+              child: ListTile(
+                title: Text(field.fieldName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (field.url != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '${field.url}',
+                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                ],
+                    if (field.description != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          '${field.description}',
+                          style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
