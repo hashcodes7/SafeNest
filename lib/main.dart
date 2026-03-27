@@ -4,11 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_provider.dart';
 import 'home_screen.dart';
 import 'first_time_screen.dart';
+import 'providers/user_provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+      ],
       child: const SafeNestApp(),
     ),
   );

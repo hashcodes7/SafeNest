@@ -8,19 +8,14 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
               'Appearance',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           Consumer<ThemeProvider>(
@@ -29,9 +24,7 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   ListTile(
                     title: const Text('Theme Mode'),
-                    subtitle: Text(
-                      themeProvider.themeMode.name.capitalize(),
-                    ),
+                    subtitle: Text(themeProvider.themeMode.name.capitalize()),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () => _showThemeModeDialog(context, themeProvider),
                   ),
@@ -78,7 +71,10 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showThemeColorDialog(BuildContext context, ThemeProvider themeProvider) {
+  void _showThemeColorDialog(
+    BuildContext context,
+    ThemeProvider themeProvider,
+  ) {
     showDialog(
       context: context,
       builder: (context) {

@@ -1,17 +1,26 @@
-# safenest
+# SafeNest
 
-A new Flutter project.
+SafeNest is a Flutter application focusing on a highly secure, offline-first approach to user data persistence using a structured JSON pattern via SharedPreferences.
+
+## Features
+
+- **Decoupled Architecture**: Mimics a powerful backend response format perfectly structured as a JSON tree (User -> Collections -> Fields).
+- **Offline Data**: Stored deeply in SharedPreferences without needing bulky database solutions like Hive or SQLite, but optimized perfectly for a drop-in API replacement in the future.
+- **Swipe Interactions**: Natively integrated swipe gestures for intuitive list mutations across the whole app.
+  - Swipe **Right** to **Delete** items smoothly.
+  - Swipe **Left** to **Edit** your entries rapidly.
+- **Provider-based Global State**: Instantaneous UI refreshes using standard `ChangeNotifierProvider` connected flawlessly with deep local storage saves.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+1. Get dependencies:
+```bash
+flutter pub get
+```
 
-A few resources to get you started if this is your first Flutter project:
+2. Run the application:
+```bash
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+*Designed with Flutter and ♥ for scalable data.*
