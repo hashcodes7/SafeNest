@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:metadata_fetch/metadata_fetch.dart';
 
 import 'models/field.dart';
 import 'providers/user_provider.dart';
@@ -10,10 +10,14 @@ class CollectionScreen extends StatelessWidget {
 
   const CollectionScreen({super.key, required this.collectionId});
 
-  void _showFieldDialog(BuildContext context, UserProvider provider, {Field? field}) {
+  void _showFieldDialog(
+    BuildContext context,
+    UserProvider provider, {
+    Field? field,
+  }) {
     final nameController = TextEditingController(text: field?.fieldName);
     final urlController = TextEditingController(text: field?.url);
-    final dataController = TextEditingController(text: field?.data);
+    final descriptionController = TextEditingController(text: field?.description);
 
     showDialog(
       context: context,
@@ -26,15 +30,21 @@ class CollectionScreen extends StatelessWidget {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Field Name (Required)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Field Name (Required)',
+                  ),
                 ),
                 TextField(
                   controller: urlController,
-                  decoration: const InputDecoration(labelText: 'URL (Optional)'),
+                  decoration: const InputDecoration(
+                    labelText: 'URL (Optional)',
+                  ),
                 ),
                 TextField(
-                  controller: dataController,
-                  decoration: const InputDecoration(labelText: 'Data (Optional)'),
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (Optional)',
+                  ),
                 ),
               ],
             ),
@@ -47,14 +57,24 @@ class CollectionScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text.trim();
-                final url = urlController.text.trim().isEmpty ? null : urlController.text.trim();
-                final data = dataController.text.trim().isEmpty ? null : dataController.text.trim();
+                final url = urlController.text.trim().isEmpty
+                    ? null
+                    : urlController.text.trim();
+                final description = descriptionController.text.trim().isEmpty
+                    ? null
+                    : descriptionController.text.trim();
 
                 if (name.isNotEmpty) {
                   if (field == null) {
-                    provider.addField(collectionId, name, url, data);
+                    provider.addField(collectionId, name, url, description);
                   } else {
-                    provider.editField(collectionId, field.fieldId, name, url, data);
+                    provider.editField(
+                      collectionId,
+                      field.fieldId,
+                      name,
+                      url,
+                      description,
+                    );
                   }
                   Navigator.pop(context);
                 }
@@ -73,10 +93,14 @@ class CollectionScreen extends StatelessWidget {
       builder: (context, provider, child) {
         final user = provider.currentUser;
         if (user == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
-        final collectionIndex = user.collections.indexWhere((c) => c.collectionId == collectionId);
+        final collectionIndex = user.collections.indexWhere(
+          (c) => c.collectionId == collectionId,
+        );
         if (collectionIndex == -1) {
           return Scaffold(
             appBar: AppBar(title: const Text('Error')),
@@ -88,9 +112,7 @@ class CollectionScreen extends StatelessWidget {
         final fields = collection.fields;
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(collection.collectionName),
-          ),
+          appBar: AppBar(title: Text(collection.collectionName)),
           body: fields.isEmpty
               ? const Center(child: Text('No fields yet. Create one!'))
               : ListView.builder(
@@ -98,69 +120,12 @@ class CollectionScreen extends StatelessWidget {
                   itemCount: fields.length,
                   itemBuilder: (context, index) {
                     final field = fields[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      clipBehavior: Clip.antiAlias,
-                      elevation: 2,
-                      child: Dismissible(
-                        key: Key(field.fieldId),
-                        direction: DismissDirection.horizontal,
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        secondaryBackground: Container(
-                          color: Colors.blue,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: const Icon(Icons.edit, color: Colors.white),
-                        ),
-                        confirmDismiss: (direction) async {
-                          if (direction == DismissDirection.startToEnd) {
-                            // Swipe Right -> Delete
-                            bool delete = false;
-                            await showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Delete Field'),
-                                content: const Text('Are you sure you want to delete this field?'),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                                  TextButton(
-                                    onPressed: () {
-                                      delete = true;
-                                      Navigator.pop(ctx);
-                                    },
-                                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (delete) {
-                              provider.deleteField(collectionId, field.fieldId);
-                            }
-                            return delete;
-                          } else if (direction == DismissDirection.endToStart) {
-                            // Swipe Left -> Edit
-                            _showFieldDialog(context, provider, field: field);
-                            return false; // Prevent dismiss, just show dialog
-                          }
-                          return false;
-                        },
-                        child: ListTile(
-                          title: Text(field.fieldName),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (field.url != null) Text('URL: ${field.url}', style: const TextStyle(fontSize: 12)),
-                              if (field.data != null) Text('Data: ${field.data}', style: const TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      ),
+                    return _FieldTile(
+                      key: Key(field.fieldId),
+                      provider: provider,
+                      collectionId: collectionId,
+                      field: field,
+                      onEdit: () => _showFieldDialog(context, provider, field: field),
                     );
                   },
                 ),
@@ -170,6 +135,206 @@ class CollectionScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _FieldTile extends StatefulWidget {
+  final UserProvider provider;
+  final String collectionId;
+  final Field field;
+  final VoidCallback onEdit;
+
+  const _FieldTile({
+    super.key,
+    required this.provider,
+    required this.collectionId,
+    required this.field,
+    required this.onEdit,
+  });
+
+  @override
+  State<_FieldTile> createState() => _FieldTileState();
+}
+
+class _FieldTileState extends State<_FieldTile> {
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryFetchThumbnailIfMissing();
+  }
+
+  void _tryFetchThumbnailIfMissing() async {
+    final field = widget.field;
+    if (field.thumbnailUrl == null && field.url != null && field.url!.startsWith('http')) {
+      try {
+        var data = await MetadataFetch.extract(field.url!);
+        if (data != null && data.image != null && mounted) {
+          widget.provider.editField(
+            widget.collectionId,
+            field.fieldId,
+            field.fieldName,
+            field.url,
+            field.description,
+            newThumbnailUrl: data.image,
+          );
+        }
+      } catch (e) {
+        // Could be offline or invalid metadata. Fails silently as requested.
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final field = widget.field;
+    
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      child: Dismissible(
+        key: Key(field.fieldId),
+        direction: DismissDirection.horizontal,
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        secondaryBackground: Container(
+          color: Colors.blue,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Icon(Icons.edit, color: Colors.white),
+        ),
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.startToEnd) {
+            bool delete = false;
+            await showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Delete Field'),
+                content: const Text(
+                  'Are you sure you want to delete this field?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      delete = true;
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (delete) {
+              widget.provider.deleteField(widget.collectionId, field.fieldId);
+            }
+            return delete;
+          } else if (direction == DismissDirection.endToStart) {
+            widget.onEdit();
+            return false;
+          }
+          return false;
+        },
+        child: Column(
+          children: [
+            if (field.thumbnailUrl != null)
+              Stack(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isExpanded = !_isExpanded;
+                      });
+                    },
+                    child: AnimatedCrossFade(
+                      duration: const Duration(milliseconds: 300),
+                      crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                      firstChild: Image.network(
+                        field.thumbnailUrl!,
+                        width: double.infinity,
+                        height: 180,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox(
+                          height: 180,
+                          child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                        ),
+                      ),
+                      secondChild: Image.network(
+                        field.thumbnailUrl!,
+                        width: double.infinity,
+                        fit: BoxFit.contain, // Natural uncropped height
+                        errorBuilder: (context, error, stackTrace) => const SizedBox(
+                          height: 180,
+                          child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ListTile(
+              title: Text(field.fieldName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (field.url != null)
+                    Text(
+                      '${field.url}',
+                      style: const TextStyle(fontSize: 12, color: Colors.blue),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (field.description != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        '${field.description}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

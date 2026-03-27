@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:local_auth/local_auth.dart';
 
 import 'settings_screen.dart';
 import 'providers/user_provider.dart';
 import 'models/collection.dart';
 import 'collection_screen.dart';
+import 'my_data_screen.dart';
+import 'about_creator_screen.dart';
+import 'profile_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final LocalAuthentication _auth = LocalAuthentication();
+  String _searchQuery = '';
 
   static const List<IconData> predefinedIcons = [
     Icons.folder, Icons.star, Icons.favorite, Icons.work,
@@ -18,9 +31,27 @@ class HomeScreen extends StatelessWidget {
     Icons.notes, Icons.article, Icons.code, Icons.build,
   ];
 
+  Future<bool> _authenticate() async {
+    try {
+      final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
+      final bool canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+
+      if (!canAuthenticate) {
+        return true; // Bypass if device physically cannot authenticate
+      }
+
+      return await _auth.authenticate(
+        localizedReason: 'Unlock your collection to proceed',
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   void _showCollectionDialog(BuildContext context, UserProvider provider, {Collection? collection}) {
     final nameController = TextEditingController(text: collection?.collectionName);
     int? selectedIconCodePoint = collection?.iconCodePoint;
+    bool isLocked = collection?.isLocked ?? false;
 
     showDialog(
       context: context,
@@ -38,6 +69,21 @@ class HomeScreen extends StatelessWidget {
                       controller: nameController,
                       decoration: const InputDecoration(labelText: 'Collection Name'),
                       autofocus: true,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Vault Lock (Biometric)', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Switch(
+                          value: isLocked,
+                          onChanged: (val) {
+                            setState(() {
+                              isLocked = val;
+                            });
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     const Text('Select an Icon (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -88,9 +134,9 @@ class HomeScreen extends StatelessWidget {
                     final name = nameController.text.trim();
                     if (name.isNotEmpty) {
                       if (collection == null) {
-                        provider.addCollection(name, iconCodePoint: selectedIconCodePoint);
+                        provider.addCollection(name, iconCodePoint: selectedIconCodePoint, isLocked: isLocked);
                       } else {
-                        provider.editCollection(collection.collectionId, name, iconCodePoint: selectedIconCodePoint);
+                        provider.editCollection(collection.collectionId, name, iconCodePoint: selectedIconCodePoint, isLocked: isLocked);
                       }
                       Navigator.pop(context);
                     }
@@ -130,8 +176,22 @@ class HomeScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.home),
               title: const Text('Home'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profile'),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.data_object),
+              title: const Text('My Data'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const MyDataScreen()));
               },
             ),
             ListTile(
@@ -139,10 +199,15 @@ class HomeScreen extends StatelessWidget {
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('About the Creator'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutCreatorScreen()));
               },
             ),
           ],
@@ -158,96 +223,168 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: Text('Error loading user data.'));
           }
 
-          final collections = user.collections;
+          var collections = user.collections;
 
-          if (collections.isEmpty) {
-            return const Center(
-              child: Text(
-                'No collections yet.\nTap the + button to create one!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18),
-              ),
-            );
+          // Global Search Logic
+          if (_searchQuery.isNotEmpty) {
+            final query = _searchQuery.toLowerCase();
+            collections = collections.where((c) {
+              final titleMatch = c.collectionName.toLowerCase().contains(query);
+              final fieldMatch = c.fields.any((f) => 
+                f.fieldName.toLowerCase().contains(query) ||
+                (f.description?.toLowerCase().contains(query) ?? false) ||
+                (f.url?.toLowerCase().contains(query) ?? false)
+              );
+              return titleMatch || fieldMatch;
+            }).toList();
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: collections.length,
-            itemBuilder: (context, index) {
-              final collection = collections[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                clipBehavior: Clip.antiAlias,
-                elevation: 2,
-                child: Dismissible(
-                  key: Key(collection.collectionId),
-                  direction: DismissDirection.horizontal,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  secondaryBackground: Container(
-                    color: Colors.blue,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: const Icon(Icons.edit, color: Colors.white),
-                  ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.startToEnd) {
-                      // Swipe Right -> Delete
-                      bool delete = false;
-                      await showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete Collection'),
-                          content: const Text('Are you sure you want to delete this collection and all its fields?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                            TextButton(
-                              onPressed: () {
-                                delete = true;
-                                Navigator.pop(ctx);
-                              },
-                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (delete) {
-                        provider.deleteCollection(collection.collectionId);
-                      }
-                      return delete;
-                    } else if (direction == DismissDirection.endToStart) {
-                      // Swipe Left -> Edit
-                      _showCollectionDialog(context, provider, collection: collection);
-                      return false; // Prevent dismiss
-                    }
-                    return false;
-                  },
-                  child: ListTile(
-                    leading: Icon(
-                      collection.iconCodePoint != null
-                          ? IconData(collection.iconCodePoint!, fontFamily: 'MaterialIcons')
-                          : Icons.folder,
-                      size: 36,
-                    ),
-                    title: Text(collection.collectionName),
-                    subtitle: Text('${collection.fields.length} fields'),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CollectionScreen(collectionId: collection.collectionId),
-                        ),
-                      );
-                    },
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Text(
+                  'Welcome, ${user.userName}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              );
-            },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: 'Search collections, apps, URLs...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: collections.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No collections found.\nTap the + button to create one!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: collections.length,
+                        itemBuilder: (context, index) {
+                          final collection = collections[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            clipBehavior: Clip.antiAlias,
+                            elevation: 2,
+                            child: Dismissible(
+                              key: Key(collection.collectionId),
+                              direction: DismissDirection.horizontal,
+                              background: Container(
+                                color: Colors.red,
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: const Icon(Icons.delete, color: Colors.white),
+                              ),
+                              secondaryBackground: Container(
+                                color: Colors.blue,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: const Icon(Icons.edit, color: Colors.white),
+                              ),
+                              confirmDismiss: (direction) async {
+                                if (collection.isLocked) {
+                                  final authenticated = await _authenticate();
+                                  if (!authenticated) return false;
+                                }
+
+                                if (direction == DismissDirection.startToEnd) {
+                                  bool delete = false;
+                                  await showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Collection'),
+                                      content: const Text('Are you sure you want to delete this collection and all its fields?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () {
+                                            delete = true;
+                                            Navigator.pop(ctx);
+                                          },
+                                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (delete) {
+                                    provider.deleteCollection(collection.collectionId);
+                                  }
+                                  return delete;
+                                } else if (direction == DismissDirection.endToStart) {
+                                  _showCollectionDialog(context, provider, collection: collection);
+                                  return false;
+                                }
+                                return false;
+                              },
+                              child: ListTile(
+                                leading: Icon(
+                                  collection.iconCodePoint != null
+                                      ? IconData(collection.iconCodePoint!, fontFamily: 'MaterialIcons')
+                                      : Icons.folder,
+                                  size: 36,
+                                ),
+                                title: Text(collection.collectionName),
+                                subtitle: Text('${collection.fields.length} fields'),
+                                trailing: collection.isLocked
+                                    ? Icon(Icons.lock, color: Colors.grey.withOpacity(0.5))
+                                    : null,
+                                onTap: () async {
+                                  if (collection.isLocked) {
+                                    final authenticated = await _authenticate();
+                                    if (!authenticated) return;
+                                  }
+                                  if (mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CollectionScreen(collectionId: collection.collectionId),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),

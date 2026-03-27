@@ -2,7 +2,7 @@ import 'collection.dart';
 
 class User {
   final String userId;
-  final String userName;
+  String userName;
   final List<Collection> collections;
 
   User({

@@ -2,13 +2,15 @@ class Field {
   final String fieldId;
   final String fieldName;
   final String? url;
-  final String? data;
+  final String? description;
+  final String? thumbnailUrl;
 
   Field({
     required this.fieldId,
     required this.fieldName,
     this.url,
-    this.data,
+    this.description,
+    this.thumbnailUrl,
   });
 
   factory Field.fromJson(Map<String, dynamic> json) {
@@ -16,7 +18,8 @@ class Field {
       fieldId: json['fieldId'] as String,
       fieldName: json['fieldName'] as String,
       url: json['url'] as String?,
-      data: json['data'] as String?,
+      description: json['description'] as String?,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
     );
   }
 
@@ -25,7 +28,8 @@ class Field {
       'fieldId': fieldId,
       'fieldName': fieldName,
       'url': url,
-      'data': data,
+      'description': description,
+      'thumbnailUrl': thumbnailUrl,
     };
   }
 }

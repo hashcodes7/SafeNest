@@ -46,21 +46,34 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateUserName(String newName) async {
+    if (_currentUser == null || newName.isEmpty) return;
+    _currentUser!.userName = newName;
+    await _save();
+    
+    // Legacy mapping syncing for first-load RootScreen checks
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('name', newName);
+
+    notifyListeners();
+  }
+
   // --- Collection Methods ---
 
-  Future<void> addCollection(String name, {int? iconCodePoint}) async {
+  Future<void> addCollection(String name, {int? iconCodePoint, bool isLocked = false}) async {
     if (_currentUser == null) return;
     final newCollection = Collection(
       collectionId: const Uuid().v4(),
       collectionName: name,
       iconCodePoint: iconCodePoint,
+      isLocked: isLocked,
       fields: [],
     );
     _currentUser!.collections.add(newCollection);
     await _save();
   }
 
-  Future<void> editCollection(String id, String newName, {int? iconCodePoint}) async {
+  Future<void> editCollection(String id, String newName, {int? iconCodePoint, bool isLocked = false}) async {
     if (_currentUser == null) return;
     final index = _currentUser!.collections.indexWhere((c) => c.collectionId == id);
     if (index != -1) {
@@ -69,6 +82,7 @@ class UserProvider extends ChangeNotifier {
         collectionId: old.collectionId,
         collectionName: newName,
         iconCodePoint: iconCodePoint,
+        isLocked: isLocked,
         fields: old.fields,
       );
       await _save();
@@ -83,7 +97,7 @@ class UserProvider extends ChangeNotifier {
 
   // --- Field Methods ---
 
-  Future<void> addField(String collectionId, String fieldName, String? url, String? data) async {
+  Future<void> addField(String collectionId, String fieldName, String? url, String? description, {String? thumbnailUrl}) async {
     if (_currentUser == null) return;
     final index = _currentUser!.collections.indexWhere((c) => c.collectionId == collectionId);
     if (index != -1) {
@@ -91,24 +105,27 @@ class UserProvider extends ChangeNotifier {
         fieldId: const Uuid().v4(),
         fieldName: fieldName,
         url: url,
-        data: data,
+        description: description,
+        thumbnailUrl: thumbnailUrl,
       );
       _currentUser!.collections[index].fields.add(newField);
       await _save();
     }
   }
 
-  Future<void> editField(String collectionId, String fieldId, String newName, String? newUrl, String? newData) async {
+  Future<void> editField(String collectionId, String fieldId, String newName, String? newUrl, String? newDescription, {String? newThumbnailUrl}) async {
     if (_currentUser == null) return;
     final cIndex = _currentUser!.collections.indexWhere((c) => c.collectionId == collectionId);
     if (cIndex != -1) {
       final fIndex = _currentUser!.collections[cIndex].fields.indexWhere((f) => f.fieldId == fieldId);
       if (fIndex != -1) {
+        final oldField = _currentUser!.collections[cIndex].fields[fIndex];
         _currentUser!.collections[cIndex].fields[fIndex] = Field(
           fieldId: fieldId,
           fieldName: newName,
           url: newUrl,
-          data: newData,
+          description: newDescription,
+          thumbnailUrl: newThumbnailUrl ?? oldField.thumbnailUrl,
         );
         await _save();
       }

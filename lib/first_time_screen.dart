@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'providers/user_provider.dart';
 import 'home_screen.dart';
 
 class FirstTimeScreen extends StatefulWidget {
@@ -18,7 +20,10 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
     if (name.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('name', name);
+      await prefs.setBool('is_logged_in', true);
+      
       if (mounted) {
+        Provider.of<UserProvider>(context, listen: false).updateUserName(name);
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
