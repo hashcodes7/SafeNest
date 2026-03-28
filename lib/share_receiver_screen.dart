@@ -1,12 +1,13 @@
-import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-
 import 'providers/user_provider.dart';
 import 'home_screen.dart';
 import 'utils/snackbar_helper.dart';
+import 'utils/auth_helper.dart';
+import 'utils/icon_helper.dart';
 
 class ShareReceiverScreen extends StatefulWidget {
   final List<SharedMediaFile> sharedFiles;
@@ -33,32 +34,6 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
     }
   }
 
-  static const List<IconData> predefinedIcons = [
-    Icons.folder,
-    Icons.star,
-    Icons.favorite,
-    Icons.work,
-    Icons.home,
-    Icons.music_note,
-    Icons.camera,
-    Icons.book,
-    Icons.pets,
-    Icons.flight,
-    Icons.train,
-    Icons.directions_car,
-    Icons.shopping_cart,
-    Icons.restaurant,
-    Icons.local_cafe,
-    Icons.local_bar,
-    Icons.lock,
-    Icons.shield,
-    Icons.key,
-    Icons.wallet,
-    Icons.notes,
-    Icons.article,
-    Icons.code,
-    Icons.build,
-  ];
 
   void _showCollectionDialog(BuildContext context, UserProvider provider) {
     final nameController = TextEditingController();
@@ -117,9 +92,9 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                               crossAxisSpacing: 8,
                               mainAxisSpacing: 8,
                             ),
-                        itemCount: predefinedIcons.length,
+                        itemCount: IconHelper.predefinedIcons.length,
                         itemBuilder: (context, index) {
-                          final iconData = predefinedIcons[index];
+                          final iconData = IconHelper.predefinedIcons[index];
                           final isSelected =
                               selectedIconCodePoint == iconData.codePoint;
                           return InkWell(
@@ -200,6 +175,18 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
       final sharedItem = widget.sharedFiles.first;
       String rawText = sharedItem.path;
 
+      if (rawText.toLowerCase().endsWith('.json') || (sharedItem.type == SharedMediaType.file && rawText.toLowerCase().endsWith('.json'))) {
+        final file = File(rawText);
+        if (await file.exists()) {
+          final jsonContent = await file.readAsString();
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showImportOptions(jsonContent);
+          }
+          return;
+        }
+      }
+
       final RegExp urlRegExp = RegExp(
         r'(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
       );
@@ -232,6 +219,76 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
         _isLoading = false;
       });
     }
+  }
+
+
+  void _showImportOptions(String jsonContent) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import JSON Vault'),
+        content: const Text('You shared a JSON file to SafeNest. How would you like to process this vault data?'),
+        actions: [
+          TextButton(
+             onPressed: () {
+               Navigator.pop(ctx);
+               Navigator.of(context).pushAndRemoveUntil(
+                 MaterialPageRoute(builder: (_) => const HomeScreen()),
+                 (route) => false,
+               );
+             },
+             child: const Text('Cancel'),
+          ),
+          TextButton(
+             onPressed: () async {
+               if (await AuthHelper.authenticate(context)) {
+                 try {
+                   final provider = Provider.of<UserProvider>(context, listen: false);
+                   await provider.importAndMergeFromJson(jsonContent);
+                   if (mounted) {
+                     SnackbarHelper.showInfo(context, 'Imported', 'Vaults safely merged!');
+                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                   }
+                 } catch (e) {
+                   if (mounted) {
+                     SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
+                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                   }
+                 }
+               } else {
+                 Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+               }
+             },
+             child: const Text('Merge'),
+          ),
+          ElevatedButton(
+             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.errorContainer),
+             onPressed: () async {
+               Navigator.pop(ctx);
+               if (await AuthHelper.authenticate(context)) {
+                 try {
+                   final provider = Provider.of<UserProvider>(context, listen: false);
+                   await provider.importFromJson(jsonContent);
+                   if (mounted) {
+                     SnackbarHelper.showInfo(context, 'Replaced', 'Full vault successfully replaced!');
+                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                   }
+                 } catch (e) {
+                   if (mounted) {
+                     SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
+                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                   }
+                 }
+               } else {
+                 Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+               }
+             },
+             child: Text('Replace', style: TextStyle(color: Theme.of(ctx).colorScheme.onErrorContainer)),
+          ),
+        ]
+      )
+    );
   }
 
   void _saveToCollection(String collectionId) {
@@ -424,12 +481,7 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                             ),
                             child: ListTile(
                               leading: Icon(
-                                collection.iconCodePoint != null
-                                    ? IconData(
-                                        collection.iconCodePoint!,
-                                        fontFamily: 'MaterialIcons',
-                                      )
-                                    : Icons.folder,
+                                IconHelper.getIcon(collection.iconCodePoint),
                                 size: 32,
                                 color: Theme.of(context).colorScheme.primary,
                               ),

@@ -73,18 +73,29 @@ class ThemeProvider extends ChangeNotifier {
   ThemeData _buildTheme(Brightness brightness) {
     // If Pure Black is selected and we are in dark mode, strictly use black background.
     final bool isPureBlackDark = brightness == Brightness.dark && _themeColor == AppThemeColor.pureBlack;
-    final scaffoldBackgroundColor = isPureBlackDark ? Colors.black : null;
-    final surfaceColor = isPureBlackDark ? Colors.black : null;
-
+    
     final baseTheme = brightness == Brightness.light ? ThemeData.light() : ThemeData.dark();
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: _themeColor.color,
+      brightness: brightness,
+    );
+
+    Color? scaffoldBackgroundColor;
+    Color? surfaceColor;
+
+    if (isPureBlackDark) {
+      scaffoldBackgroundColor = Colors.black;
+      surfaceColor = Colors.black;
+    } else if (brightness == Brightness.dark) {
+      // Very very dark shade of the color theme instead of purely black or dark grey
+      scaffoldBackgroundColor = Color.alphaBlend(colorScheme.primary.withAlpha(15), const Color(0xFF121212));
+      surfaceColor = Color.alphaBlend(colorScheme.primary.withAlpha(25), const Color(0xFF161616));
+    }
 
     return ThemeData(
       brightness: brightness,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: _themeColor.color,
-        brightness: brightness,
-      ).copyWith(
-        surface: surfaceColor ?? baseTheme.colorScheme.surface,
+      colorScheme: colorScheme.copyWith(
+        surface: surfaceColor ?? colorScheme.surface,
       ),
       scaffoldBackgroundColor: scaffoldBackgroundColor ?? baseTheme.scaffoldBackgroundColor,
       useMaterial3: true,

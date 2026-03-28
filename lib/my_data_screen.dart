@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:file_selector/file_selector.dart';
 
 import 'providers/user_provider.dart';
 import 'utils/snackbar_helper.dart';
+import 'utils/auth_helper.dart';
 
 class MyDataScreen extends StatefulWidget {
   const MyDataScreen({super.key});
@@ -72,25 +74,106 @@ class _MyDataScreenState extends State<MyDataScreen> {
     }
   }
 
+  Future<void> _importJsonFromFile() async {
+    try {
+      const XTypeGroup typeGroup = XTypeGroup(
+        label: 'json',
+        extensions: <String>['json'],
+      );
+      final XFile? result = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+      
+      if (result != null) {
+        final String jsonContent = await result.readAsString();
+        
+        if (mounted) {
+           _showImportOptions(jsonContent);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarHelper.showError(context, 'Import Failed', 'Could not read file: $e');
+      }
+    }
+  }
+
+  void _showImportOptions(String jsonContent) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import JSON'),
+        content: const Text('How would you like to import this vault data?'),
+        actions: [
+          TextButton(
+             onPressed: () => Navigator.pop(ctx),
+             child: const Text('Cancel'),
+          ),
+          TextButton(
+             onPressed: () async {
+               if (await AuthHelper.authenticate(context)) {
+                 Navigator.pop(ctx);
+                 try {
+                   final provider = Provider.of<UserProvider>(context, listen: false);
+                   await provider.importAndMergeFromJson(jsonContent);
+                   if (mounted) SnackbarHelper.showInfo(context, 'Imported', 'Vaults safely merged!');
+                   _loadData();
+                 } catch (e) {
+                   if (mounted) SnackbarHelper.showError(context, 'Invalid JSON formatting', e.toString().split('\n').first);
+                 }
+               }
+             },
+             child: const Text('Merge'),
+          ),
+          ElevatedButton(
+             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.errorContainer),
+             onPressed: () async {
+               if (await AuthHelper.authenticate(context)) {
+                 Navigator.pop(ctx);
+                 try {
+                   final provider = Provider.of<UserProvider>(context, listen: false);
+                   await provider.importFromJson(jsonContent);
+                   if (mounted) SnackbarHelper.showInfo(context, 'Replaced', 'Full vault successfully replaced!');
+                   _loadData();
+                 } catch (e) {
+                   if (mounted) SnackbarHelper.showError(context, 'Invalid JSON formatting', e.toString().split('\n').first);
+                 }
+               }
+             },
+             child: Text('Replace', style: TextStyle(color: Theme.of(ctx).colorScheme.onErrorContainer)),
+          ),
+        ]
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Data'),
         actions: [
+          if (!_isLoading && !_isEditing)
+             IconButton(
+               icon: const Icon(Icons.file_upload),
+               tooltip: 'Import JSON',
+               onPressed: _importJsonFromFile,
+             ),
           if (!_isLoading)
             IconButton(
               icon: Icon(_isEditing ? Icons.close : Icons.edit),
               tooltip: _isEditing ? 'Cancel Editing' : 'Edit JSON',
-              onPressed: () {
-                setState(() {
-                  if (_isEditing) {
+              onPressed: () async {
+                if (_isEditing) {
+                  setState(() {
                     _isEditing = false;
-                  } else {
-                    _textController.text = _jsonData;
-                    _isEditing = true;
+                  });
+                } else {
+                  if (await AuthHelper.authenticate(context)) {
+                    setState(() {
+                      _textController.text = _jsonData;
+                      _isEditing = true;
+                    });
                   }
-                });
+                }
               },
             ),
         ],

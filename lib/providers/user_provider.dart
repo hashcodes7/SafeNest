@@ -75,6 +75,48 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> importAndMergeFromJson(String jsonStr) async {
+    try {
+      final Map<String, dynamic> jsonMap = json.decode(jsonStr);
+      final importedUser = User.fromJson(jsonMap);
+      
+      if (_currentUser == null) {
+        _currentUser = importedUser;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('name', importedUser.userName);
+      } else {
+        for (var importedCollection in importedUser.collections) {
+          final existingIndex = _currentUser!.collections.indexWhere(
+            (c) => c.collectionName.toLowerCase() == importedCollection.collectionName.toLowerCase()
+          );
+
+          if (existingIndex != -1) {
+            final existingCollection = _currentUser!.collections[existingIndex];
+            
+            final resultIsLocked = existingCollection.isLocked || importedCollection.isLocked;
+            final existingFieldIds = existingCollection.fields.map((f) => f.fieldId).toSet();
+            final fieldsToAdd = importedCollection.fields.where((f) => !existingFieldIds.contains(f.fieldId)).toList();
+            
+            _currentUser!.collections[existingIndex] = Collection(
+              collectionId: existingCollection.collectionId,
+              collectionName: existingCollection.collectionName,
+              iconCodePoint: existingCollection.iconCodePoint ?? importedCollection.iconCodePoint,
+              isLocked: resultIsLocked,
+              fields: [...existingCollection.fields, ...fieldsToAdd],
+            );
+          } else {
+            _currentUser!.collections.add(importedCollection);
+          }
+        }
+      }
+      
+      await _save();
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Failed to load JSON: $e');
+    }
+  }
+
   // --- Collection Methods ---
 
   Future<void> addCollection(String name, {int? iconCodePoint, bool isLocked = false}) async {

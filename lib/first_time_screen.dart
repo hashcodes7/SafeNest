@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'providers/user_provider.dart';
+import 'services/secret_service.dart';
 import 'home_screen.dart';
 
 class FirstTimeScreen extends StatefulWidget {
@@ -14,14 +15,32 @@ class FirstTimeScreen extends StatefulWidget {
 
 class _FirstTimeScreenState extends State<FirstTimeScreen> {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _secretController = TextEditingController();
 
   Future<void> _saveNameAndProceed() async {
     final name = _nameController.text.trim();
-    if (name.isNotEmpty) {
+    final secret = _secretController.text.trim();
+
+    if (name.isNotEmpty && secret.isNotEmpty) {
+      if (secret.length < 4) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('App Secret must be at least 4 characters long', style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('name', name);
       await prefs.setBool('is_logged_in', true);
       
+      // Save App Secret
+      await SecretService.saveSecret(secret);
+
       if (mounted) {
         Provider.of<UserProvider>(context, listen: false).updateUserName(name);
         Navigator.of(context).pushReplacement(
@@ -30,14 +49,21 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your name', style: TextStyle(color: Colors.white))),
-        );
+        const SnackBar(
+           content: Text(
+            'Please fill in both fields',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _secretController.dispose();
     super.dispose();
   }
 
@@ -51,16 +77,14 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       // Prevents the keyboard from pushing the background blobs up awkwardly
-      resizeToAvoidBottomInset: false, 
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Background blobs
           Positioned.fill(
-            child: CustomPaint(
-              painter: _BackgroundShapesPainter(),
-            ),
+            child: CustomPaint(painter: _BackgroundShapesPainter()),
           ),
-          
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -98,13 +122,17 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
                         Image.asset(
                           'assets/owl.png',
                           height: 150,
-                          errorBuilder: (context, error, stackTrace) => 
-                              const Icon(Icons.error_outline, size: 100, color: brownColor),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.error_outline,
+                                size: 100,
+                                color: brownColor,
+                              ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Welcome Texts
                     Text(
                       'HEY',
@@ -125,7 +153,7 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Input Field Pill
                     Container(
                       height: 56,
@@ -135,29 +163,90 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
                       ),
                       child: TextField(
                         controller: _nameController,
-                        style: const TextStyle(color: Colors.white, fontSize: 18),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                        ),
                         cursorColor: Colors.white,
                         textAlign: TextAlign.center,
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _saveNameAndProceed(),
                         decoration: const InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
                           hintText: 'Enter your name...',
-                          hintStyle: TextStyle(color: Colors.white60, fontSize: 16),
+                          hintStyle: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
                     
-                    const SizedBox(height: 50),
-                    
+                    Text(
+                      'MASTER KEY',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: darkGreenColor,
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      child: TextField(
+                        controller: _secretController,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                        ),
+                        cursorColor: Colors.white,
+                        textAlign: TextAlign.center,
+                        obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _saveNameAndProceed(),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          hintText: 'Create a fallback secret key...',
+                          hintStyle: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+
                     // Decorative line and subtext
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(height: 2, width: 40, color: const Color(0xFFC4B891)),
+                        Container(
+                          height: 2,
+                          width: 40,
+                          color: const Color(0xFFC4B891),
+                        ),
                         const SizedBox(width: 8),
-                        Container(height: 2, width: 60, color: const Color(0xFFC4B891)),
+                        Container(
+                          height: 2,
+                          width: 60,
+                          color: const Color(0xFFC4B891),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -176,12 +265,20 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(height: 2, width: 80, color: const Color(0xFFC4B891)),
+                        Container(
+                          height: 2,
+                          width: 80,
+                          color: const Color(0xFFC4B891),
+                        ),
                         const SizedBox(width: 8),
-                        Container(height: 2, width: 30, color: const Color(0xFFC4B891)),
+                        Container(
+                          height: 2,
+                          width: 30,
+                          color: const Color(0xFFC4B891),
+                        ),
                       ],
                     ),
-                    
+
                     // Explicit submit button just in case user doesn't hit enter
                     const SizedBox(height: 40),
                     ElevatedButton(
@@ -192,7 +289,10 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
                       ),
                       child: const Text('Continue'),
                     ),
@@ -212,36 +312,85 @@ class _BackgroundShapesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Colors matching the design
-    final lightLeaf = Paint()..color = const Color(0xFF90BA6B)..style = PaintingStyle.fill;
-    final darkLeaf = Paint()..color = const Color(0xFF4C8D38)..style = PaintingStyle.fill;
-    final moundLight = Paint()..color = const Color(0xFF86C15D)..style = PaintingStyle.fill;
-    final moundDark = Paint()..color = const Color(0xFF5D9D36)..style = PaintingStyle.fill;
+    final lightLeaf = Paint()
+      ..color = const Color(0xFF90BA6B)
+      ..style = PaintingStyle.fill;
+    final darkLeaf = Paint()
+      ..color = const Color(0xFF4C8D38)
+      ..style = PaintingStyle.fill;
+    final moundLight = Paint()
+      ..color = const Color(0xFF86C15D)
+      ..style = PaintingStyle.fill;
+    final moundDark = Paint()
+      ..color = const Color(0xFF5D9D36)
+      ..style = PaintingStyle.fill;
 
     // Small leaves (rough approximations)
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * 0.15, size.height * 0.55), width: 30, height: 45), darkLeaf);
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * 0.85, size.height * 0.56), width: 25, height: 40), lightLeaf);
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * 0.92, size.height * 0.58), width: 15, height: 25), darkLeaf);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.15, size.height * 0.55),
+        width: 30,
+        height: 45,
+      ),
+      darkLeaf,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.85, size.height * 0.56),
+        width: 25,
+        height: 40,
+      ),
+      lightLeaf,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.92, size.height * 0.58),
+        width: 15,
+        height: 25,
+      ),
+      darkLeaf,
+    );
 
     // Bottom left huge blob
     final path1 = Path();
     path1.moveTo(-size.width * 0.1, size.height);
-    path1.quadraticBezierTo(size.width * 0.3, size.height * 0.7, size.width * 0.6, size.height);
+    path1.quadraticBezierTo(
+      size.width * 0.3,
+      size.height * 0.7,
+      size.width * 0.6,
+      size.height,
+    );
     path1.close();
     canvas.drawPath(path1, moundLight);
-    
+
     // Bottom right huge blob
     final path2 = Path();
     path2.moveTo(size.width * 0.4, size.height);
-    path2.quadraticBezierTo(size.width * 0.6, size.height * 0.65, size.width * 1.1, size.height * 0.8);
+    path2.quadraticBezierTo(
+      size.width * 0.6,
+      size.height * 0.65,
+      size.width * 1.1,
+      size.height * 0.8,
+    );
     path2.lineTo(size.width, size.height);
     path2.close();
     canvas.drawPath(path2, moundDark);
-    
+
     // Bottom left leaf shape pointing right
     final path3 = Path();
     path3.moveTo(size.width * 0.1, size.height * 0.85);
-    path3.quadraticBezierTo(size.width * 0.15, size.height * 0.7, size.width * 0.35, size.height * 0.75);
-    path3.quadraticBezierTo(size.width * 0.2, size.height * 0.9, size.width * 0.1, size.height * 0.85);
+    path3.quadraticBezierTo(
+      size.width * 0.15,
+      size.height * 0.7,
+      size.width * 0.35,
+      size.height * 0.75,
+    );
+    path3.quadraticBezierTo(
+      size.width * 0.2,
+      size.height * 0.9,
+      size.width * 0.1,
+      size.height * 0.85,
+    );
     path3.close();
     canvas.drawPath(path3, darkLeaf);
   }

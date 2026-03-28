@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:local_auth/local_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'settings_screen.dart';
 import 'providers/user_provider.dart';
@@ -9,7 +9,10 @@ import 'collection_screen.dart';
 import 'my_data_screen.dart';
 import 'about_creator_screen.dart';
 import 'profile_screen.dart';
+import 'check_updates_page.dart';
 import 'utils/snackbar_helper.dart';
+import 'utils/auth_helper.dart';
+import 'utils/icon_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,53 +23,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final LocalAuthentication _auth = LocalAuthentication();
   String _searchQuery = '';
 
-  static const List<IconData> predefinedIcons = [
-    Icons.folder,
-    Icons.star,
-    Icons.favorite,
-    Icons.work,
-    Icons.home,
-    Icons.music_note,
-    Icons.camera,
-    Icons.book,
-    Icons.pets,
-    Icons.flight,
-    Icons.train,
-    Icons.directions_car,
-    Icons.shopping_cart,
-    Icons.restaurant,
-    Icons.local_cafe,
-    Icons.local_bar,
-    Icons.lock,
-    Icons.shield,
-    Icons.key,
-    Icons.wallet,
-    Icons.notes,
-    Icons.article,
-    Icons.code,
-    Icons.build,
-  ];
-
-  Future<bool> _authenticate() async {
-    try {
-      final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
-      final bool canAuthenticate =
-          canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
-
-      if (!canAuthenticate) {
-        return true; // Bypass if device physically cannot authenticate
-      }
-
-      return await _auth.authenticate(
-        localizedReason: 'Unlock your collection to proceed',
-      );
-    } catch (e) {
-      return false;
-    }
-  }
 
   void _showCollectionDialog(
     BuildContext context,
@@ -133,9 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               crossAxisSpacing: 8,
                               mainAxisSpacing: 8,
                             ),
-                        itemCount: predefinedIcons.length,
+                        itemCount: IconHelper.predefinedIcons.length,
                         itemBuilder: (context, index) {
-                          final iconData = predefinedIcons[index];
+                          final iconData = IconHelper.predefinedIcons[index];
                           final isSelected =
                               selectedIconCodePoint == iconData.codePoint;
                           return InkWell(
@@ -228,7 +186,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SafeNest')),
+      appBar: AppBar(
+        // centerTitle: true,
+        toolbarHeight: 85,
+        title: Text(
+          'SafeNest',
+          style: GoogleFonts.sacramento(
+            fontSize: 55,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -316,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: const Icon(Icons.data_object),
               title: const Text('My Data'),
               onTap: () async {
-                final authenticated = await _authenticate();
+                final authenticated = await AuthHelper.authenticate(context);
                 if (authenticated && context.mounted) {
                   Navigator.pop(context);
                   Navigator.push(
@@ -350,6 +319,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AboutCreatorScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.update),
+              title: const Text('Check for Updates'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CheckUpdatesPage(),
                   ),
                 );
               },
@@ -393,6 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Welcome, ${user.userName}',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
@@ -508,7 +492,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               confirmDismiss: (direction) async {
                                 if (collection.isLocked) {
-                                  final authenticated = await _authenticate();
+                                  final authenticated =
+                                      await AuthHelper.authenticate(context);
                                   if (!authenticated) return false;
                                 }
 
@@ -587,12 +572,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       context,
                                     ).colorScheme.primaryContainer,
                                     child: Icon(
-                                      collection.iconCodePoint != null
-                                          ? IconData(
-                                              collection.iconCodePoint!,
-                                              fontFamily: 'MaterialIcons',
-                                            )
-                                          : Icons.folder_rounded,
+                                      IconHelper.getIcon(
+                                        collection.iconCodePoint,
+                                      ),
                                       size: 28,
                                       color: Theme.of(
                                         context,
@@ -626,7 +608,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onTap: () async {
                                     if (collection.isLocked) {
                                       final authenticated =
-                                          await _authenticate();
+                                          await AuthHelper.authenticate(
+                                            context,
+                                          );
                                       if (!authenticated) return;
                                     }
                                     if (mounted) {

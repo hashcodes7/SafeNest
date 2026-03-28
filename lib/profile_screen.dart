@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/user_provider.dart';
 import 'first_time_screen.dart';
+import 'utils/auth_helper.dart';
+import 'services/secret_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,6 +29,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showChangeSecretDialog() async {
+    final TextEditingController newSecretController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('New Master Key'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: newSecretController,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Enter New Master Key',
+                border: OutlineInputBorder(),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().length < 4) {
+                  return 'Must be at least 4 characters long';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final newSecret = newSecretController.text.trim();
+                  await SecretService.saveSecret(newSecret);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Master Key updated successfully!', style: TextStyle(color: Colors.white)),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -71,6 +129,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                       icon: const Icon(Icons.save),
                       label: const Text('Save Changes'),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final authenticated = await AuthHelper.authenticate(context);
+                        if (authenticated && context.mounted) {
+                          _showChangeSecretDialog();
+                        }
+                      },
+                      icon: const Icon(Icons.password),
+                      label: const Text('Change Master Key'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+                        foregroundColor: Theme.of(context).colorScheme.onTertiaryContainer,
+                      ),
                     ),
                     const Spacer(),
                     SizedBox(
