@@ -6,6 +6,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import 'providers/user_provider.dart';
 import 'home_screen.dart';
+import 'utils/snackbar_helper.dart';
 
 class ShareReceiverScreen extends StatefulWidget {
   final List<SharedMediaFile> sharedFiles;
@@ -172,6 +173,9 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                         iconCodePoint: selectedIconCodePoint,
                         isLocked: isLocked,
                       );
+                      if (context.mounted) {
+                        SnackbarHelper.showSuccess(context, 'Created', 'Collection $name created successfully!');
+                      }
                       Navigator.pop(context);
                     }
                   },
@@ -238,6 +242,10 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
       _description.isNotEmpty ? _description : null,
       thumbnailUrl: _thumbnailUrl,
     );
+
+    if (context.mounted) {
+      SnackbarHelper.showInfo(context, 'Saved', 'Link successfully saved to collection!');
+    }
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomeScreen()),

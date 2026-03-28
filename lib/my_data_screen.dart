@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'providers/user_provider.dart';
+import 'utils/snackbar_helper.dart';
 
 class MyDataScreen extends StatefulWidget {
   const MyDataScreen({super.key});
@@ -61,11 +62,12 @@ class _MyDataScreenState extends State<MyDataScreen> {
         [XFile(file.path)],
         text: 'SafeNest Backup Export',
       );
+      if (mounted) {
+        SnackbarHelper.showInfo(context, 'Exported', 'Data prepared for export!');
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error exporting data: $e')),
-        );
+        SnackbarHelper.showError(context, 'Export Failed', e.toString());
       }
     }
   }
@@ -126,17 +128,17 @@ class _MyDataScreenState extends State<MyDataScreen> {
                     try {
                       final provider = Provider.of<UserProvider>(context, listen: false);
                       await provider.importFromJson(_textController.text);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Data updated & reloaded successfully!')),
-                      );
+                      if (context.mounted) {
+                        SnackbarHelper.showInfo(context, 'Data Saved', 'Data updated & reloaded successfully!');
+                      }
                       setState(() {
                         _jsonData = _textController.text;
                         _isEditing = false;
                       });
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Invalid JSON format: ${e.toString().split('\n').first}')),
-                      );
+                      if (context.mounted) {
+                        SnackbarHelper.showError(context, 'Invalid JSON', e.toString().split('\n').first);
+                      }
                     }
                   },
                   icon: const Icon(Icons.save),

@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'models/field.dart';
 import 'providers/user_provider.dart';
+import 'utils/snackbar_helper.dart';
 
 class CollectionScreen extends StatelessWidget {
   final String collectionId;
@@ -18,43 +21,80 @@ class CollectionScreen extends StatelessWidget {
     final nameController = TextEditingController(text: field?.fieldName);
     final urlController = TextEditingController(text: field?.url);
     final descriptionController = TextEditingController(text: field?.description);
+    final thumbnailController = TextEditingController(text: field?.thumbnailUrl);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(field == null ? 'New Field' : 'Edit Field'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(field == null ? 'New Field' : 'Edit Field', style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Field Name (Required)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: urlController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'URL (Optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: thumbnailController,
+                  decoration: InputDecoration(
+                    labelText: 'Image URL or Gallery File',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.image_outlined),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.attach_file),
+                      tooltip: 'Pick image from gallery',
+                      onPressed: () async {
+                        final picker = ImagePicker();
+                        final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                        if (pickedFile != null) {
+                          thumbnailController.text = pickedFile.path;
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
+                  minLines: 3,
+                  maxLines: 6,
+                  decoration: InputDecoration(
                     labelText: 'Description (Optional)',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
             ),
           ),
-          actions: [
+        ),
+        actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               onPressed: () {
                 final name = nameController.text.trim();
                 final url = urlController.text.trim().isEmpty
@@ -63,10 +103,16 @@ class CollectionScreen extends StatelessWidget {
                 final description = descriptionController.text.trim().isEmpty
                     ? null
                     : descriptionController.text.trim();
+                final thumbnailUrl = thumbnailController.text.trim().isEmpty
+                    ? null
+                    : thumbnailController.text.trim();
 
                 if (name.isNotEmpty) {
                   if (field == null) {
-                    provider.addField(collectionId, name, url, description);
+                    provider.addField(collectionId, name, url, description, thumbnailUrl: thumbnailUrl);
+                    if (context.mounted) {
+                      SnackbarHelper.showSuccess(context, 'Created', 'Field $name created successfully!');
+                    }
                   } else {
                     provider.editField(
                       collectionId,
@@ -74,7 +120,11 @@ class CollectionScreen extends StatelessWidget {
                       name,
                       url,
                       description,
+                      newThumbnailUrl: thumbnailUrl,
                     );
+                    if (context.mounted) {
+                      SnackbarHelper.showInfo(context, 'Updated', 'Field $name updated successfully!');
+                    }
                   }
                   Navigator.pop(context);
                 }
@@ -257,6 +307,9 @@ class _FieldTileState extends State<_FieldTile> {
             );
             if (delete) {
               widget.provider.deleteField(widget.collectionId, field.fieldId);
+              if (mounted) {
+                SnackbarHelper.showError(context, 'Deleted', 'Field deleted safely.');
+              }
             }
             return delete;
           } else if (direction == DismissDirection.endToStart) {
@@ -279,25 +332,46 @@ class _FieldTileState extends State<_FieldTile> {
                     child: AnimatedCrossFade(
                       duration: const Duration(milliseconds: 300),
                       crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                      firstChild: Image.network(
-                        field.thumbnailUrl!,
-                        width: double.infinity,
-                        height: 180,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox(
-                          height: 180,
-                          child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                        ),
-                      ),
-                      secondChild: Image.network(
-                        field.thumbnailUrl!,
-                        width: double.infinity,
-                        fit: BoxFit.contain, // Natural uncropped height
-                        errorBuilder: (context, error, stackTrace) => const SizedBox(
-                          height: 180,
-                          child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                        ),
-                      ),
+                      firstChild: field.thumbnailUrl!.startsWith('http')
+                        ? Image.network(
+                            field.thumbnailUrl!,
+                            width: double.infinity,
+                            height: 180,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox(
+                              height: 180,
+                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                            ),
+                          )
+                        : Image.file(
+                            File(field.thumbnailUrl!),
+                            width: double.infinity,
+                            height: 180,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox(
+                              height: 180,
+                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                            ),
+                          ),
+                      secondChild: field.thumbnailUrl!.startsWith('http')
+                        ? Image.network(
+                            field.thumbnailUrl!,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox(
+                              height: 180,
+                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                            ),
+                          )
+                        : Image.file(
+                            File(field.thumbnailUrl!),
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox(
+                              height: 180,
+                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                            ),
+                          ),
                     ),
                   ),
                   Positioned(

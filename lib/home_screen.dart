@@ -9,6 +9,7 @@ import 'collection_screen.dart';
 import 'my_data_screen.dart';
 import 'about_creator_screen.dart';
 import 'profile_screen.dart';
+import 'utils/snackbar_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,18 +24,37 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
 
   static const List<IconData> predefinedIcons = [
-    Icons.folder, Icons.star, Icons.favorite, Icons.work,
-    Icons.home, Icons.music_note, Icons.camera, Icons.book,
-    Icons.pets, Icons.flight, Icons.train, Icons.directions_car,
-    Icons.shopping_cart, Icons.restaurant, Icons.local_cafe, Icons.local_bar,
-    Icons.lock, Icons.shield, Icons.key, Icons.wallet,
-    Icons.notes, Icons.article, Icons.code, Icons.build,
+    Icons.folder,
+    Icons.star,
+    Icons.favorite,
+    Icons.work,
+    Icons.home,
+    Icons.music_note,
+    Icons.camera,
+    Icons.book,
+    Icons.pets,
+    Icons.flight,
+    Icons.train,
+    Icons.directions_car,
+    Icons.shopping_cart,
+    Icons.restaurant,
+    Icons.local_cafe,
+    Icons.local_bar,
+    Icons.lock,
+    Icons.shield,
+    Icons.key,
+    Icons.wallet,
+    Icons.notes,
+    Icons.article,
+    Icons.code,
+    Icons.build,
   ];
 
   Future<bool> _authenticate() async {
     try {
       final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
-      final bool canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+      final bool canAuthenticate =
+          canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
 
       if (!canAuthenticate) {
         return true; // Bypass if device physically cannot authenticate
@@ -48,8 +68,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showCollectionDialog(BuildContext context, UserProvider provider, {Collection? collection}) {
-    final nameController = TextEditingController(text: collection?.collectionName);
+  void _showCollectionDialog(
+    BuildContext context,
+    UserProvider provider, {
+    Collection? collection,
+  }) {
+    final nameController = TextEditingController(
+      text: collection?.collectionName,
+    );
     int? selectedIconCodePoint = collection?.iconCodePoint;
     bool isLocked = collection?.isLocked ?? false;
 
@@ -59,7 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(collection == null ? 'New Collection' : 'Edit Collection'),
+              title: Text(
+                collection == null ? 'New Collection' : 'Edit Collection',
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 child: Column(
@@ -67,14 +95,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Collection Name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Collection Name',
+                      ),
                       autofocus: true,
                     ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Vault Lock (Biometric)', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Vault Lock (Biometric)',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         Switch(
                           value: isLocked,
                           onChanged: (val) {
@@ -86,20 +119,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const Text('Select an Icon (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Select an Icon (Optional)',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     Flexible(
                       child: GridView.builder(
                         shrinkWrap: true,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
                         itemCount: predefinedIcons.length,
                         itemBuilder: (context, index) {
                           final iconData = predefinedIcons[index];
-                          final isSelected = selectedIconCodePoint == iconData.codePoint;
+                          final isSelected =
+                              selectedIconCodePoint == iconData.codePoint;
                           return InkWell(
                             onTap: () {
                               setState(() {
@@ -108,13 +146,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
+                                color: isSelected
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer
+                                    : null,
                                 borderRadius: BorderRadius.circular(8),
-                                border: isSelected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : null,
+                                border: isSelected
+                                    ? Border.all(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        width: 2,
+                                      )
+                                    : null,
                               ),
                               child: Icon(
                                 iconData,
-                                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
                               ),
                             ),
                           );
@@ -134,9 +185,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     final name = nameController.text.trim();
                     if (name.isNotEmpty) {
                       if (collection == null) {
-                        provider.addCollection(name, iconCodePoint: selectedIconCodePoint, isLocked: isLocked);
+                        provider.addCollection(
+                          name,
+                          iconCodePoint: selectedIconCodePoint,
+                          isLocked: isLocked,
+                        );
+                        if (context.mounted) {
+                          SnackbarHelper.showSuccess(
+                            context,
+                            'Created',
+                            'Collection $name created successfully!',
+                          );
+                        }
                       } else {
-                        provider.editCollection(collection.collectionId, name, iconCodePoint: selectedIconCodePoint, isLocked: isLocked);
+                        provider.editCollection(
+                          collection.collectionId,
+                          name,
+                          iconCodePoint: selectedIconCodePoint,
+                          isLocked: isLocked,
+                        );
+                        if (context.mounted) {
+                          SnackbarHelper.showInfo(
+                            context,
+                            'Updated',
+                            'Collection updated successfully!',
+                          );
+                        }
                       }
                       Navigator.pop(context);
                     }
@@ -145,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             );
-          }
+          },
         );
       },
     );
@@ -154,9 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SafeNest'),
-      ),
+      appBar: AppBar(title: const Text('SafeNest')),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -182,10 +254,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.2),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: Image.asset('assets/logo.png', height: 48, errorBuilder: (c, e, s) => const Icon(Icons.security, size: 48, color: Colors.white)),
+                        child: Image.asset(
+                          'assets/logo.png',
+                          height: 48,
+                          errorBuilder: (c, e, s) => const Icon(
+                            Icons.security,
+                            size: 48,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                       const Spacer(),
                       Text(
@@ -200,7 +282,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'Secured locally for ${user.userName}',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.8),
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -220,7 +304,12 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Profile'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -230,7 +319,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 final authenticated = await _authenticate();
                 if (authenticated && context.mounted) {
                   Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MyDataScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MyDataScreen(),
+                    ),
+                  );
                 }
               },
             ),
@@ -239,7 +333,12 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -247,7 +346,12 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('About the Creator'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutCreatorScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AboutCreatorScreen(),
+                  ),
+                );
               },
             ),
           ],
@@ -270,10 +374,11 @@ class _HomeScreenState extends State<HomeScreen> {
             final query = _searchQuery.toLowerCase();
             collections = collections.where((c) {
               final titleMatch = c.collectionName.toLowerCase().contains(query);
-              final fieldMatch = c.fields.any((f) => 
-                f.fieldName.toLowerCase().contains(query) ||
-                (f.description?.toLowerCase().contains(query) ?? false) ||
-                (f.url?.toLowerCase().contains(query) ?? false)
+              final fieldMatch = c.fields.any(
+                (f) =>
+                    f.fieldName.toLowerCase().contains(query) ||
+                    (f.description?.toLowerCase().contains(query) ?? false) ||
+                    (f.url?.toLowerCase().contains(query) ?? false),
               );
               return titleMatch || fieldMatch;
             }).toList();
@@ -292,7 +397,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: TextField(
                   controller: _searchController,
                   autofocus: false,
@@ -313,7 +421,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear),
@@ -343,31 +453,58 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           final collection = collections[index];
                           return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                               side: BorderSide(
-                                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant.withOpacity(0.5),
                                 width: 1,
                               ),
                             ),
-                            color: Theme.of(context).colorScheme.surfaceContainerLow,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLow,
                             clipBehavior: Clip.antiAlias,
                             elevation: 0,
                             child: Dismissible(
                               key: Key(collection.collectionId),
                               direction: DismissDirection.horizontal,
                               background: Container(
-                                color: Theme.of(context).colorScheme.errorContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.errorContainer,
                                 alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 24),
-                                child: Icon(Icons.delete_sweep_rounded, color: Theme.of(context).colorScheme.onErrorContainer, size: 28),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Icon(
+                                  Icons.delete_sweep_rounded,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
+                                  size: 28,
+                                ),
                               ),
                               secondaryBackground: Container(
-                                color: Theme.of(context).colorScheme.secondaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.secondaryContainer,
                                 alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.symmetric(horizontal: 24),
-                                child: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSecondaryContainer, size: 28),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Icon(
+                                  Icons.edit_rounded,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
+                                  size: 28,
+                                ),
                               ),
                               confirmDismiss: (direction) async {
                                 if (collection.isLocked) {
@@ -380,66 +517,127 @@ class _HomeScreenState extends State<HomeScreen> {
                                   await showDialog(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                      title: const Text('Delete Collection', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      content: const Text('Are you sure you want to delete this collection and all its fields?'),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      title: const Text(
+                                        'Delete Collection',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      content: const Text(
+                                        'Are you sure you want to delete this collection and all its fields?',
+                                      ),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('Cancel'),
+                                        ),
                                         TextButton(
                                           onPressed: () {
                                             delete = true;
                                             Navigator.pop(ctx);
                                           },
-                                          child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.bold)),
+                                          child: Text(
+                                            'Delete',
+                                            style: TextStyle(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.error,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
                                   );
                                   if (delete) {
-                                    provider.deleteCollection(collection.collectionId);
+                                    provider.deleteCollection(
+                                      collection.collectionId,
+                                    );
+                                    if (context.mounted) {
+                                      SnackbarHelper.showError(
+                                        context,
+                                        'Deleted',
+                                        'Collection deleted successfully.',
+                                      );
+                                    }
                                   }
                                   return delete;
-                                } else if (direction == DismissDirection.endToStart) {
-                                  _showCollectionDialog(context, provider, collection: collection);
+                                } else if (direction ==
+                                    DismissDirection.endToStart) {
+                                  _showCollectionDialog(
+                                    context,
+                                    provider,
+                                    collection: collection,
+                                  );
                                   return false;
                                 }
                                 return false;
                               },
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
                                 child: ListTile(
                                   leading: CircleAvatar(
                                     radius: 24,
-                                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer,
                                     child: Icon(
                                       collection.iconCodePoint != null
-                                          ? IconData(collection.iconCodePoint!, fontFamily: 'MaterialIcons')
+                                          ? IconData(
+                                              collection.iconCodePoint!,
+                                              fontFamily: 'MaterialIcons',
+                                            )
                                           : Icons.folder_rounded,
                                       size: 28,
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
                                     ),
                                   ),
                                   title: Text(
                                     collection.collectionName,
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 18,
+                                    ),
                                   ),
                                   subtitle: Text(
                                     '${collection.fields.length} file${collection.fields.length == 1 ? '' : 's'}',
-                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                   trailing: collection.isLocked
-                                      ? Icon(Icons.lock_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5))
+                                      ? Icon(
+                                          Icons.lock_rounded,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant
+                                              .withOpacity(0.5),
+                                        )
                                       : const Icon(Icons.chevron_right_rounded),
                                   onTap: () async {
                                     if (collection.isLocked) {
-                                      final authenticated = await _authenticate();
+                                      final authenticated =
+                                          await _authenticate();
                                       if (!authenticated) return;
                                     }
                                     if (mounted) {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => CollectionScreen(collectionId: collection.collectionId),
+                                          builder: (context) =>
+                                              CollectionScreen(
+                                                collectionId:
+                                                    collection.collectionId,
+                                              ),
                                         ),
                                       );
                                     }
