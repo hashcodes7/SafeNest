@@ -16,7 +16,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -42,13 +42,15 @@ android {
         val variant = this
         outputs.all {
             val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
-            output.outputFileName = "safenest_${variant.versionName}.apk"
+            val abi = output.getFilter("ABI") ?: "universal"
+            output.outputFileName = "safenest_${variant.versionName}_$abi.apk"
         }
 
         assembleProvider.get().doLast {
-            outputs.forEach { output ->
+            variant.outputs.forEach { output ->
+                val baseOutput = output as com.android.build.gradle.api.BaseVariantOutput
                 copy {
-                    from(output.outputFile)
+                    from(baseOutput.outputFile)
                     into("${project.rootDir}/../updates")
                 }
             }
