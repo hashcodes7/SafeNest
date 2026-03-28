@@ -37,6 +37,23 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    applicationVariants.all {
+        val variant = this
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+            output.outputFileName = "safenest_${variant.versionName}.apk"
+        }
+
+        assembleProvider.get().doLast {
+            outputs.forEach { output ->
+                copy {
+                    from(output.outputFile)
+                    into("${project.rootDir}/../updates")
+                }
+            }
+        }
+    }
 }
 
 flutter {
