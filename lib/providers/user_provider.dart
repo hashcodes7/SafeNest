@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -56,6 +57,22 @@ class UserProvider extends ChangeNotifier {
     await prefs.setString('name', newName);
 
     notifyListeners();
+  }
+
+  Future<void> importFromJson(String jsonStr) async {
+    try {
+      final Map<String, dynamic> jsonMap = json.decode(jsonStr);
+      final importedUser = User.fromJson(jsonMap);
+      _currentUser = importedUser;
+      await _save();
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('name', importedUser.userName);
+      
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Failed to load JSON: $e');
+    }
   }
 
   // --- Collection Methods ---

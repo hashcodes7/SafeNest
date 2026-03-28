@@ -226,9 +226,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: const Icon(Icons.data_object),
               title: const Text('My Data'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const MyDataScreen()));
+              onTap: () async {
+                final authenticated = await _authenticate();
+                if (authenticated && context.mounted) {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MyDataScreen()));
+                }
               },
             ),
             ListTile(

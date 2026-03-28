@@ -160,6 +160,14 @@ class _FieldTile extends StatefulWidget {
 class _FieldTileState extends State<_FieldTile> {
   bool _isExpanded = false;
 
+  Widget _buildExpandableText(String text, TextStyle? style) {
+    if (text.length <= 200 || _isExpanded) {
+      return Text(text, style: style);
+    } else {
+      return Text('${text.substring(0, 200)}...', style: style);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -318,7 +326,7 @@ class _FieldTileState extends State<_FieldTile> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
               child: ListTile(
-                title: Text(field.fieldName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                title: _buildExpandableText(field.fieldName, const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -335,9 +343,21 @@ class _FieldTileState extends State<_FieldTile> {
                     if (field.description != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          '${field.description}',
-                          style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        child: _buildExpandableText(
+                          field.description!,
+                          TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    if (field.fieldName.length > 200 || (field.description?.length ?? 0) > 200)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isExpanded = !_isExpanded;
+                            });
+                          },
+                          child: Text(_isExpanded ? 'Show Less' : 'Show More'),
                         ),
                       ),
                   ],

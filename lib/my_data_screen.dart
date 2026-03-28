@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:local_auth/local_auth.dart';
-
 import 'providers/user_provider.dart';
 
 class MyDataScreen extends StatefulWidget {
@@ -17,9 +15,16 @@ class MyDataScreen extends StatefulWidget {
 }
 
 class _MyDataScreenState extends State<MyDataScreen> {
-  final LocalAuthentication _auth = LocalAuthentication();
   String _jsonData = '';
   bool _isLoading = true;
+  bool _isEditing = false;
+  final TextEditingController _textController = TextEditingController();
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -48,16 +53,6 @@ class _MyDataScreenState extends State<MyDataScreen> {
 
   Future<void> _exportData() async {
     try {
-      final bool canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
-      final bool canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
-
-      if (canAuthenticate) {
-        final authenticated = await _auth.authenticate(
-          localizedReason: 'Please verify your identity to export secure data',
-        );
-        if (!authenticated) return;
-      }
-
       final directory = await getTemporaryDirectory();
       final file = File('${directory.path}/safenest_backup.json');
       await file.writeAsString(_jsonData);
@@ -78,7 +73,26 @@ class _MyDataScreenState extends State<MyDataScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Data')),
+      appBar: AppBar(
+        title: const Text('My Data'),
+        actions: [
+          if (!_isLoading)
+            IconButton(
+              icon: Icon(_isEditing ? Icons.close : Icons.edit),
+              tooltip: _isEditing ? 'Cancel Editing' : 'Edit JSON',
+              onPressed: () {
+                setState(() {
+                  if (_isEditing) {
+                    _isEditing = false;
+                  } else {
+                    _textController.text = _jsonData;
+                    _isEditing = true;
+                  }
+                });
+              },
+            ),
+        ],
+      ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
         : Container(
@@ -89,18 +103,50 @@ class _MyDataScreenState extends State<MyDataScreen> {
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: SingleChildScrollView(
-              child: SelectableText(
-                _jsonData,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-              ),
-            ),
+            child: _isEditing
+                ? TextField(
+                    controller: _textController,
+                    maxLines: null,
+                    expands: true,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    decoration: const InputDecoration(border: InputBorder.none),
+                  )
+                : SingleChildScrollView(
+                    child: SelectableText(
+                      _jsonData,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    ),
+                  ),
           ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _exportData,
-        icon: const Icon(Icons.download),
-        label: const Text('Export JSON'),
-      ),
+      floatingActionButton: _isLoading
+          ? null
+          : _isEditing
+              ? FloatingActionButton.extended(
+                  onPressed: () async {
+                    try {
+                      final provider = Provider.of<UserProvider>(context, listen: false);
+                      await provider.importFromJson(_textController.text);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Data updated & reloaded successfully!')),
+                      );
+                      setState(() {
+                        _jsonData = _textController.text;
+                        _isEditing = false;
+                      });
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Invalid JSON format: ${e.toString().split('\n').first}')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save & Reload'),
+                )
+              : FloatingActionButton.extended(
+                  onPressed: _exportData,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Export JSON'),
+                ),
     );
   }
 }
