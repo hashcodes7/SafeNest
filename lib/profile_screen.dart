@@ -72,7 +72,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Master Key updated successfully!', style: TextStyle(color: Colors.white)),
+                        content: Text(
+                          'Master Key updated successfully!',
+                          style: TextStyle(color: Colors.white),
+                        ),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -97,12 +100,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(16.0),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 32, // -32 for top/bottom padding
+                minHeight:
+                    constraints.maxHeight - 32, // -32 for top/bottom padding
               ),
               child: IntrinsicHeight(
                 child: Column(
                   children: [
-                    const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
+                    const CircleAvatar(
+                      radius: 50,
+                      child: Icon(Icons.person, size: 50),
+                    ),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _nameController,
@@ -133,7 +140,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final authenticated = await AuthHelper.authenticate(context);
+                        final authenticated = await AuthHelper.authenticate(
+                          context,
+                        );
                         if (authenticated && context.mounted) {
                           _showChangeSecretDialog();
                         }
@@ -141,8 +150,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: const Icon(Icons.password),
                       label: const Text('Change Master Key'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
-                        foregroundColor: Theme.of(context).colorScheme.onTertiaryContainer,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.tertiaryContainer,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onTertiaryContainer,
                       ),
                     ),
                     const Spacer(),

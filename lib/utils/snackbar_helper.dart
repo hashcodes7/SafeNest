@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 
 class SnackbarHelper {
@@ -8,6 +9,7 @@ class SnackbarHelper {
     required String message,
     required ContentType contentType,
   }) {
+    debugPrint('Snackbar: [$title] $message');
     if (!context.mounted) return;
 
     final snackBar = SnackBar(

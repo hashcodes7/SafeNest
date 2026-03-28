@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,8 +18,11 @@ class UpdateService {
   Future<List<AppRelease>> fetchReleases() async {
     try {
       final response = await _dio.get(_githubApiUrl);
+      debugPrint('GitHub API Response Status: ${response.statusCode}');
       if (response.statusCode == 200) {
+        debugPrint('Raw Data: ${response.data}');
         final List<dynamic> data = response.data;
+        debugPrint('Number of items in updates folder: ${data.length}');
         final installedVersion = await AppVersionService.getInstalledVersion();
         final deviceAbi = await DeviceArchitectureService.getDeviceAbi();
         
@@ -31,13 +35,17 @@ class UpdateService {
           final String name = item['name'];
           final String downloadUrl = item['download_url'];
 
+          debugPrint('Checking file: $name');
+
           // New Pattern: safenest_<version>_<abi>.apk
-          final regExp = RegExp(r'safenest_(.*?)_(.*?)\.apk');
+          // Case-insensitive to handle 'SafeNest' vs 'safenest'.
+          final regExp = RegExp(r'safenest_([^_]+)_(.*)\.apk', caseSensitive: false);
           final match = regExp.firstMatch(name);
 
           if (match != null) {
             final version = match.group(1)!;
             final abi = match.group(2)!;
+            debugPrint('Match found! Version: $version, ABI: $abi');
             
             final isSupported = (abi == deviceAbi);
             final status = _determineStatus(version, installedVersion, isSupported);

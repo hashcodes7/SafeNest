@@ -30,7 +30,10 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
   }
 
   Future<void> _loadReleases() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _releases = [];
+    });
     try {
       final releases = await _updateService.fetchReleases();
       setState(() {
@@ -44,6 +47,7 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
           'Error',
           'Failed to check for updates: $e',
         );
+        debugPrint('Error: $e');
       }
       setState(() => _isLoading = false);
     }
@@ -101,7 +105,11 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
       }
     } catch (e) {
       if (mounted) {
-        SnackbarHelper.showError(context, 'Error', 'Could not open installer: $e');
+        SnackbarHelper.showError(
+          context,
+          'Error',
+          'Could not open installer: $e',
+        );
       }
     }
   }
@@ -127,7 +135,11 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.update_disabled, size: 64, color: Colors.grey),
+                          const Icon(
+                            Icons.update_disabled,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           const Text('No updates found in the repository.'),
                           const SizedBox(height: 16),
@@ -159,28 +171,48 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
 
     return ListView.builder(
       itemCount: sortedVersions.length,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemBuilder: (context, index) {
         final version = sortedVersions[index];
         final versionReleases = groupedReleases[version]!;
         
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: Text(
-                'Version $version',
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+        // Determine if this version is currently installed
+        final isInstalled = versionReleases.any(
+            (release) => release.status == ReleaseStatus.installed);
+
+        return Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            title: Text(
+              'Version $version',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
-            ...versionReleases.map((release) => _buildReleaseItem(release)),
-            const Divider(),
-          ],
+            trailing: isInstalled 
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.5)),
+                  ),
+                  child: const Text(
+                    'Installed',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                )
+              : null,
+            childrenPadding: const EdgeInsets.symmetric(horizontal: 16),
+            initiallyExpanded: index == 0, // Expand latest version by default
+            children: versionReleases.map((release) => _buildReleaseItem(release)).toList(),
+          ),
         );
       },
     );
@@ -224,7 +256,7 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: isEnabled ? 2 : 0,
+      elevation: isEnabled ? 1 : 0,
       color: isEnabled ? null : Colors.grey.withOpacity(0.05),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -236,7 +268,7 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                   Text(
+                    Text(
                       release.abi,
                       style: GoogleFonts.outfit(
                         fontSize: 16,
@@ -247,7 +279,10 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -272,7 +307,10 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
                     child: OutlinedButton.icon(
                       onPressed: () => _startDownload(release),
                       icon: const Icon(Icons.redo, size: 18),
-                      label: const Text('Re-download', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Re-download',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ),
                 if (release.downloaded && isEnabled) const SizedBox(width: 8),
@@ -285,12 +323,16 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
                           : release.status == ReleaseStatus.downgrade
                               ? Colors.red
                               : null,
-                      foregroundColor: isEnabled && release.status != ReleaseStatus.installed
-                          ? Colors.white
-                          : null,
+                      foregroundColor:
+                          isEnabled && release.status != ReleaseStatus.installed
+                              ? Colors.white
+                              : null,
                     ),
                     icon: Icon(buttonIcon, size: 18),
-                    label: Text(buttonText, style: const TextStyle(fontSize: 12)),
+                    label: Text(
+                      buttonText,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
               ],
@@ -314,7 +356,10 @@ class _CheckUpdatesPageState extends State<CheckUpdatesPage> {
               children: [
                 Text(
                   'Downloading SafeNest $_downloadingVersion',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   'ABI: $_downloadingAbi',
