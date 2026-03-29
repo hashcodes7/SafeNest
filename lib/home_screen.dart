@@ -434,206 +434,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: collections.length,
                         itemBuilder: (context, index) {
-                          final collection = collections[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              side: BorderSide(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                                width: 1,
-                              ),
-                            ),
-                            color: Theme.of(
+                          return _CollectionCard(
+                            collection: collections[index],
+                            provider: provider,
+                            onEdit: () => _showCollectionDialog(
                               context,
-                            ).colorScheme.surfaceContainerLow,
-                            clipBehavior: Clip.antiAlias,
-                            elevation: 0,
-                            child: Dismissible(
-                              key: Key(collection.collectionId),
-                              direction: DismissDirection.horizontal,
-                              background: Container(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.errorContainer,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: Icon(
-                                  Icons.delete_sweep_rounded,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onErrorContainer,
-                                  size: 28,
-                                ),
-                              ),
-                              secondaryBackground: Container(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.secondaryContainer,
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                child: Icon(
-                                  Icons.edit_rounded,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSecondaryContainer,
-                                  size: 28,
-                                ),
-                              ),
-                              confirmDismiss: (direction) async {
-                                if (direction == DismissDirection.startToEnd) {
-                                  if (collection.isLocked) {
-                                    if (!await AuthHelper.authenticate(context)) {
-                                      return false;
-                                    }
-                                  }
-                                  bool delete = false;
-                                  if (!mounted) return false;
-                                  await showDialog(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(24),
-                                      ),
-                                      title: const Text(
-                                        'Delete Collection',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      content: const Text(
-                                        'Are you sure you want to delete this collection and all its fields?',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            delete = true;
-                                            Navigator.pop(ctx);
-                                          },
-                                          child: Text(
-                                            'Delete',
-                                            style: TextStyle(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.error,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (delete) {
-                                    provider.deleteCollection(
-                                      collection.collectionId,
-                                    );
-                                    if (context.mounted) {
-                                      SnackbarHelper.showError(
-                                        context,
-                                        'Deleted',
-                                        'Collection deleted successfully.',
-                                      );
-                                    }
-                                  }
-                                  return delete;
-                                } else if (direction ==
-                                    DismissDirection.endToStart) {
-                                  if (collection.isLocked) {
-                                    if (!await AuthHelper.authenticate(context)) {
-                                      return false;
-                                    }
-                                  }
-                                  if (!mounted) return false;
-                                  _showCollectionDialog(
-                                    context,
-                                    provider,
-                                    collection: collection,
-                                  );
-                                  return false;
-                                }
-                                return false;
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer,
-                                    child: Icon(
-                                      IconHelper.getIcon(
-                                        collection.iconCodePoint,
-                                      ),
-                                      size: 28,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    collection.collectionName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${collection.fields.length} file${collection.fields.length == 1 ? '' : 's'}',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  trailing: collection.isLocked
-                                      ? Icon(
-                                          Icons.lock_rounded,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant
-                                              .withValues(alpha: 0.5),
-                                        )
-                                      : const Icon(Icons.chevron_right_rounded),
-                                  onTap: () async {
-                                    if (collection.isLocked) {
-                                      if (!await AuthHelper.authenticate(
-                                        context,
-                                      )) {
-                                        return;
-                                      }
-                                    }
-                                    if (mounted) {
-                                    if (!mounted) return;
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            CollectionScreen(
-                                              collectionId:
-                                                  collection.collectionId,
-                                            ),
-                                      ),
-                                    );
-                                    }
-                                  },
-                                ),
-                              ),
+                              provider,
+                              collection: collections[index],
                             ),
                           );
                         },
@@ -651,6 +458,176 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _CollectionCard extends StatelessWidget {
+  final Collection collection;
+  final UserProvider provider;
+  final VoidCallback onEdit;
+
+  const _CollectionCard({
+    required this.collection,
+    required this.provider,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      child: Dismissible(
+        key: Key(collection.collectionId),
+        direction: DismissDirection.horizontal,
+        background: _buildDismissBackground(
+          context,
+          Theme.of(context).colorScheme.errorContainer,
+          Icons.delete_sweep_rounded,
+          Theme.of(context).colorScheme.onErrorContainer,
+          Alignment.centerLeft,
+        ),
+        secondaryBackground: _buildDismissBackground(
+          context,
+          Theme.of(context).colorScheme.secondaryContainer,
+          Icons.edit_rounded,
+          Theme.of(context).colorScheme.onSecondaryContainer,
+          Alignment.centerRight,
+        ),
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.startToEnd) {
+            if (collection.isLocked) {
+              if (!await AuthHelper.authenticate(context)) {
+                return false;
+              }
+            }
+            bool delete = false;
+            if (!context.mounted) return false;
+            await showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                title: const Text(
+                  'Delete Collection',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                content: const Text(
+                  'Are you sure you want to delete this collection and all its fields?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      delete = true;
+                      Navigator.pop(ctx);
+                    },
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (delete) {
+              provider.deleteCollection(collection.collectionId);
+              if (context.mounted) {
+                SnackbarHelper.showError(
+                  context,
+                  'Deleted',
+                  'Collection deleted successfully.',
+                );
+              }
+            }
+            return delete;
+          } else if (direction == DismissDirection.endToStart) {
+            if (collection.isLocked) {
+              if (!await AuthHelper.authenticate(context)) {
+                return false;
+              }
+            }
+            onEdit();
+            return false;
+          }
+          return false;
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: ListTile(
+            leading: CircleAvatar(
+              radius: 24,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: Icon(
+                IconHelper.getIcon(collection.iconCodePoint),
+                size: 28,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+            title: Text(
+              collection.collectionName,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+            ),
+            subtitle: Text(
+              '${collection.fields.length} file${collection.fields.length == 1 ? '' : 's'}',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            trailing: collection.isLocked
+                ? Icon(
+                    Icons.lock_rounded,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  )
+                : const Icon(Icons.chevron_right_rounded),
+            onTap: () async {
+              if (collection.isLocked) {
+                if (!await AuthHelper.authenticate(context)) {
+                  return;
+                }
+              }
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CollectionScreen(collectionId: collection.collectionId),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDismissBackground(
+    BuildContext context,
+    Color color,
+    IconData icon,
+    Color iconColor,
+    Alignment alignment,
+  ) {
+    return Container(
+      color: color,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Icon(icon, color: iconColor, size: 28),
     );
   }
 }

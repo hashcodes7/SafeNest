@@ -85,26 +85,30 @@ class UserProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('name', importedUser.userName);
       } else {
-        for (var importedCollection in importedUser.collections) {
-          final existingIndex = _currentUser!.collections.indexWhere(
-            (c) => c.collectionName.toLowerCase() == importedCollection.collectionName.toLowerCase()
-          );
+        // Optimization: Use a map for O(1) collection lookup by name
+        final Map<String, Collection> currentCollections = {
+          for (var c in _currentUser!.collections) c.collectionName.toLowerCase(): c
+        };
 
-          if (existingIndex != -1) {
-            final existingCollection = _currentUser!.collections[existingIndex];
-            
-            final resultIsLocked = existingCollection.isLocked || importedCollection.isLocked;
+        for (var importedCollection in importedUser.collections) {
+          final key = importedCollection.collectionName.toLowerCase();
+          final existingCollection = currentCollections[key];
+
+          if (existingCollection != null) {
+            // Merge fields within the existing collection
             final existingFieldIds = existingCollection.fields.map((f) => f.fieldId).toSet();
             final fieldsToAdd = importedCollection.fields.where((f) => !existingFieldIds.contains(f.fieldId)).toList();
             
-            _currentUser!.collections[existingIndex] = Collection(
+            final index = _currentUser!.collections.indexOf(existingCollection);
+            _currentUser!.collections[index] = Collection(
               collectionId: existingCollection.collectionId,
               collectionName: existingCollection.collectionName,
               iconCodePoint: existingCollection.iconCodePoint ?? importedCollection.iconCodePoint,
-              isLocked: resultIsLocked,
+              isLocked: existingCollection.isLocked || importedCollection.isLocked,
               fields: [...existingCollection.fields, ...fieldsToAdd],
             );
           } else {
+            // Add new collection entirely
             _currentUser!.collections.add(importedCollection);
           }
         }
