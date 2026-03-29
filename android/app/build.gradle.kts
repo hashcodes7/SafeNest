@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,10 +8,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -22,6 +25,7 @@ android {
     }
 
     kotlinOptions {
+        @Suppress("DEPRECATION")
         jvmTarget = "17"
     }
 
@@ -40,7 +44,7 @@ android {
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String?
             keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }
+            storeFile = keystoreProperties["storeFile"]?.let { path -> file(path as String) }
             storePassword = keystoreProperties["storePassword"] as String?
         }
     }
@@ -58,6 +62,7 @@ android {
     applicationVariants.all {
         val variant = this
         outputs.all {
+            @Suppress("DEPRECATION")
             val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
             val abi = output.getFilter("ABI") ?: "universal"
             output.outputFileName = "safenest_${variant.versionName}_$abi.apk"
@@ -65,6 +70,7 @@ android {
 
         assembleProvider.get().doLast {
             variant.outputs.forEach { output ->
+                @Suppress("DEPRECATION")
                 val baseOutput = output as com.android.build.gradle.api.BaseVariantOutput
                 copy {
                     from(baseOutput.outputFile)
