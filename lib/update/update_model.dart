@@ -1,6 +1,8 @@
-enum ReleaseStatus {
+
+
+enum UpdateStatus {
   installed,
-  upgrade,
+  update,
   downgrade,
   unsupported,
 }
@@ -9,9 +11,9 @@ class AppRelease {
   final String version;
   final String abi;
   final String downloadUrl;
-  final ReleaseStatus status;
+  final UpdateStatus status;
   final bool isSupported;
-  final bool downloaded;
+  final bool isDownloaded;
   final String? localPath;
 
   AppRelease({
@@ -20,7 +22,7 @@ class AppRelease {
     required this.downloadUrl,
     required this.status,
     required this.isSupported,
-    this.downloaded = false,
+    this.isDownloaded = false,
     this.localPath,
   });
 
@@ -28,9 +30,9 @@ class AppRelease {
     String? version,
     String? abi,
     String? downloadUrl,
-    ReleaseStatus? status,
+    UpdateStatus? status,
     bool? isSupported,
-    bool? downloaded,
+    bool? isDownloaded,
     String? localPath,
   }) {
     return AppRelease(
@@ -39,7 +41,7 @@ class AppRelease {
       downloadUrl: downloadUrl ?? this.downloadUrl,
       status: status ?? this.status,
       isSupported: isSupported ?? this.isSupported,
-      downloaded: downloaded ?? this.downloaded,
+      isDownloaded: isDownloaded ?? this.isDownloaded,
       localPath: localPath ?? this.localPath,
     );
   }

@@ -148,9 +148,8 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                         iconCodePoint: selectedIconCodePoint,
                         isLocked: isLocked,
                       );
-                      if (context.mounted) {
-                        SnackbarHelper.showSuccess(context, 'Created', 'Collection $name created successfully!');
-                      }
+                      if (!mounted) return;
+                      SnackbarHelper.showSuccess(context, 'Created', 'Collection $name created successfully!');
                       Navigator.pop(context);
                     }
                   },
@@ -242,23 +241,24 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
           ),
           TextButton(
              onPressed: () async {
-               if (await AuthHelper.authenticate(context)) {
-                 try {
-                   final provider = Provider.of<UserProvider>(context, listen: false);
-                   await provider.importAndMergeFromJson(jsonContent);
-                   if (mounted) {
-                     SnackbarHelper.showInfo(context, 'Imported', 'Vaults safely merged!');
-                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
-                   }
-                 } catch (e) {
-                   if (mounted) {
-                     SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
-                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
-                   }
-                 }
-               } else {
-                 Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
-               }
+                final navigator = Navigator.of(context);
+                final provider = Provider.of<UserProvider>(context, listen: false);
+                if (await AuthHelper.authenticate(context)) {
+                  if (!mounted) return;
+                  try {
+                    await provider.importAndMergeFromJson(jsonContent);
+                    if (!mounted) return;
+                    SnackbarHelper.showInfo(context, 'Imported', 'Vaults safely merged!');
+                    navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                  } catch (e) {
+                    if (!mounted) return;
+                    SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
+                    navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                  }
+                } else {
+                  if (!mounted) return;
+                  navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                }
              },
              child: const Text('Merge'),
           ),
@@ -266,22 +266,23 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.errorContainer),
              onPressed: () async {
                Navigator.pop(ctx);
+               final navigator = Navigator.of(context);
+               final provider = Provider.of<UserProvider>(context, listen: false);
                if (await AuthHelper.authenticate(context)) {
+                 if (!mounted) return;
                  try {
-                   final provider = Provider.of<UserProvider>(context, listen: false);
                    await provider.importFromJson(jsonContent);
-                   if (mounted) {
-                     SnackbarHelper.showInfo(context, 'Replaced', 'Full vault successfully replaced!');
-                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
-                   }
+                   if (!mounted) return;
+                   SnackbarHelper.showInfo(context, 'Replaced', 'Full vault successfully replaced!');
+                   navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
                  } catch (e) {
-                   if (mounted) {
-                     SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
-                     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
-                   }
+                   if (!mounted) return;
+                   SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
+                   navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
                  }
                } else {
-                 Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                 if (!mounted) return;
+                 navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
                }
              },
              child: Text('Replace', style: TextStyle(color: Theme.of(ctx).colorScheme.onErrorContainer)),
@@ -300,9 +301,8 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
       thumbnailUrl: _thumbnailUrl,
     );
 
-    if (context.mounted) {
-      SnackbarHelper.showInfo(context, 'Saved', 'Link successfully saved to collection!');
-    }
+    if (!mounted) return;
+    SnackbarHelper.showInfo(context, 'Saved', 'Link successfully saved to collection!');
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -325,7 +325,7 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                       borderRadius: BorderRadius.circular(16),
                       color: Theme.of(
                         context,
-                      ).colorScheme.primaryContainer.withOpacity(0.3),
+                      ).colorScheme.primaryContainer.withValues(alpha: 0.3),
                     ),
                     child: Column(
                       children: [
@@ -437,7 +437,7 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                                     border: Border.all(
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.primary.withOpacity(0.4),
+                                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                                       style: BorderStyle.solid,
                                     ),
                                   ),

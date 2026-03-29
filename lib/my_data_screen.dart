@@ -9,6 +9,7 @@ import 'package:file_selector/file_selector.dart';
 import 'providers/user_provider.dart';
 import 'utils/snackbar_helper.dart';
 import 'utils/auth_helper.dart';
+import 'home_screen.dart';
 
 class MyDataScreen extends StatefulWidget {
   const MyDataScreen({super.key});
@@ -109,34 +110,48 @@ class _MyDataScreenState extends State<MyDataScreen> {
           ),
           TextButton(
              onPressed: () async {
-               if (await AuthHelper.authenticate(context)) {
-                 Navigator.pop(ctx);
-                 try {
-                   final provider = Provider.of<UserProvider>(context, listen: false);
-                   await provider.importAndMergeFromJson(jsonContent);
-                   if (mounted) SnackbarHelper.showInfo(context, 'Imported', 'Vaults safely merged!');
-                   _loadData();
-                 } catch (e) {
-                   if (mounted) SnackbarHelper.showError(context, 'Invalid JSON formatting', e.toString().split('\n').first);
-                 }
-               }
+                final navigator = Navigator.of(context);
+                final provider = Provider.of<UserProvider>(context, listen: false);
+                if (await AuthHelper.authenticate(context)) {
+                  if (!mounted) return;
+                  try {
+                    await provider.importAndMergeFromJson(jsonContent);
+                    if (!mounted) return;
+                    SnackbarHelper.showInfo(context, 'Imported', 'Vaults safely merged!');
+                    navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                  } catch (e) {
+                    if (!mounted) return;
+                    SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
+                    navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                  }
+                } else {
+                  if (!mounted) return;
+                  navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                }
              },
              child: const Text('Merge'),
           ),
           ElevatedButton(
              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.errorContainer),
              onPressed: () async {
-               if (await AuthHelper.authenticate(context)) {
-                 Navigator.pop(ctx);
-                 try {
-                   final provider = Provider.of<UserProvider>(context, listen: false);
-                   await provider.importFromJson(jsonContent);
-                   if (mounted) SnackbarHelper.showInfo(context, 'Replaced', 'Full vault successfully replaced!');
-                   _loadData();
-                 } catch (e) {
-                   if (mounted) SnackbarHelper.showError(context, 'Invalid JSON formatting', e.toString().split('\n').first);
-                 }
-               }
+                final navigator = Navigator.of(context);
+                final provider = Provider.of<UserProvider>(context, listen: false);
+                if (await AuthHelper.authenticate(context)) {
+                  if (!mounted) return;
+                  try {
+                    await provider.importFromJson(jsonContent);
+                    if (!mounted) return;
+                    SnackbarHelper.showInfo(context, 'Replaced', 'Full vault successfully replaced!');
+                    navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                  } catch (e) {
+                    if (!mounted) return;
+                    SnackbarHelper.showError(context, 'Invalid Data', e.toString().split('\n').first);
+                    navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                  }
+                } else {
+                  if (!mounted) return;
+                  navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+                }
              },
              child: Text('Replace', style: TextStyle(color: Theme.of(ctx).colorScheme.onErrorContainer)),
           ),
@@ -211,9 +226,8 @@ class _MyDataScreenState extends State<MyDataScreen> {
                     try {
                       final provider = Provider.of<UserProvider>(context, listen: false);
                       await provider.importFromJson(_textController.text);
-                      if (context.mounted) {
-                        SnackbarHelper.showInfo(context, 'Data Saved', 'Data updated & reloaded successfully!');
-                      }
+                      if (!mounted) return;
+                      SnackbarHelper.showInfo(context, 'Data Saved', 'Data updated & reloaded successfully!');
                       setState(() {
                         _jsonData = _textController.text;
                         _isEditing = false;

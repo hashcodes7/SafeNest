@@ -9,7 +9,7 @@ import 'collection_screen.dart';
 import 'my_data_screen.dart';
 import 'about_creator_screen.dart';
 import 'profile_screen.dart';
-import 'check_updates_page.dart';
+import 'update/update_page.dart';
 import 'utils/snackbar_helper.dart';
 import 'utils/auth_helper.dart';
 import 'utils/icon_helper.dart';
@@ -24,7 +24,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
 
   void _showCollectionDialog(
     BuildContext context,
@@ -225,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onPrimary.withOpacity(0.2),
+                          ).colorScheme.onPrimary.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Image.asset(
@@ -285,11 +284,11 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: const Icon(Icons.data_object),
               title: const Text('My Data'),
               onTap: () async {
-                final authenticated = await AuthHelper.authenticate(context);
-                if (authenticated && context.mounted) {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
+                final navigator = Navigator.of(context);
+                if (await AuthHelper.authenticate(context)) {
+                  if (!mounted) return;
+                  navigator.pop();
+                  navigator.push(
                     MaterialPageRoute(
                       builder: (context) => const MyDataScreen(),
                     ),
@@ -332,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CheckUpdatesPage(),
+                    builder: (context) => const UpdatePage(),
                   ),
                 );
               },
@@ -446,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               side: BorderSide(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.outlineVariant.withOpacity(0.5),
+                                ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                                 width: 1,
                               ),
                             ),
@@ -491,14 +490,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               confirmDismiss: (direction) async {
-                                if (collection.isLocked) {
-                                  final authenticated =
-                                      await AuthHelper.authenticate(context);
-                                  if (!authenticated) return false;
-                                }
-
                                 if (direction == DismissDirection.startToEnd) {
+                                  if (collection.isLocked) {
+                                    if (!await AuthHelper.authenticate(context)) {
+                                      return false;
+                                    }
+                                  }
                                   bool delete = false;
+                                  if (!mounted) return false;
                                   await showDialog(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
@@ -552,6 +551,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   return delete;
                                 } else if (direction ==
                                     DismissDirection.endToStart) {
+                                  if (collection.isLocked) {
+                                    if (!await AuthHelper.authenticate(context)) {
+                                      return false;
+                                    }
+                                  }
+                                  if (!mounted) return false;
                                   _showCollectionDialog(
                                     context,
                                     provider,
@@ -602,28 +607,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurfaceVariant
-                                              .withOpacity(0.5),
+                                              .withValues(alpha: 0.5),
                                         )
                                       : const Icon(Icons.chevron_right_rounded),
                                   onTap: () async {
                                     if (collection.isLocked) {
-                                      final authenticated =
-                                          await AuthHelper.authenticate(
-                                            context,
-                                          );
-                                      if (!authenticated) return;
+                                      if (!await AuthHelper.authenticate(
+                                        context,
+                                      )) {
+                                        return;
+                                      }
                                     }
                                     if (mounted) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              CollectionScreen(
-                                                collectionId:
-                                                    collection.collectionId,
-                                              ),
-                                        ),
-                                      );
+                                    if (!mounted) return;
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            CollectionScreen(
+                                              collectionId:
+                                                  collection.collectionId,
+                                            ),
+                                      ),
+                                    );
                                     }
                                   },
                                 ),

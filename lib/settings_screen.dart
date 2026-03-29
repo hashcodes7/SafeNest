@@ -30,7 +30,7 @@ class SettingsScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: SegmentedButton<ThemeMode>(
                   style: ButtonStyle(
-                    shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                    shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
                   ),
                   segments: const [
                     ButtonSegment(value: ThemeMode.system, label: Text('System')),
@@ -64,7 +64,7 @@ class SettingsScreen extends StatelessWidget {
                               width: 110,
                               height: 180,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
@@ -80,7 +80,7 @@ class SettingsScreen extends StatelessWidget {
                                     child: Container(
                                       height: 16,
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
@@ -123,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
                                           width: 16,
                                           height: 16,
                                           decoration: BoxDecoration(
-                                            color: colorTheme.color.withOpacity(0.5),
+                                            color: colorTheme.color.withValues(alpha: 0.5),
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -132,7 +132,7 @@ class SettingsScreen extends StatelessWidget {
                                           child: Container(
                                             height: 12,
                                             decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                                               borderRadius: BorderRadius.circular(6),
                                             ),
                                           ),
