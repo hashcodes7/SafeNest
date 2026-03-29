@@ -32,6 +32,42 @@ class AboutCreatorScreen extends StatelessWidget {
     );
   }
 
+  void _showImageViewer(BuildContext context, String assetPath, String tag) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: Center(
+            child: Hero(
+              tag: tag,
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.person, size: 100, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,13 +92,19 @@ class AboutCreatorScreen extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(left: 24, right: 12, top: 24, bottom: 24),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: Image.asset(
-                          'assets/developer1.jpg',
-                          fit: BoxFit.cover,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 60),
+                      child: GestureDetector(
+                        onTap: () => _showImageViewer(context, 'assets/developer1.jpg', 'dev1'),
+                        child: Hero(
+                          tag: 'dev1',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Image.asset(
+                              'assets/developer1.jpg',
+                              fit: BoxFit.cover,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 60),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -70,13 +112,19 @@ class AboutCreatorScreen extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(left: 12, right: 24, top: 24, bottom: 24),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: Image.asset(
-                          'assets/developer2.jpg',
-                          fit: BoxFit.cover,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 60),
+                      child: GestureDetector(
+                        onTap: () => _showImageViewer(context, 'assets/developer2.jpg', 'dev2'),
+                        child: Hero(
+                          tag: 'dev2',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Image.asset(
+                              'assets/developer2.jpg',
+                              fit: BoxFit.cover,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 60),
+                            ),
+                          ),
                         ),
                       ),
                     ),

@@ -313,7 +313,26 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Save Shared Link')),
+      appBar: AppBar(
+        title: const Text('Save Shared Link'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFFFF6347), // Tomato Red
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -495,6 +514,28 @@ class _ShareReceiverScreenState extends State<ShareReceiverScreen> {
                       );
                     },
                   ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFFF6347), // Tomato Red
+                        side: const BorderSide(color: Color(0xFFFF6347)),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Discard & Cancel'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

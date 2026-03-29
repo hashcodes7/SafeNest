@@ -180,24 +180,88 @@ class _UpdatePageState extends State<UpdatePage> {
   }
 
   Widget _buildReleaseList() {
+    // Group releases by version
+    final Map<String, List<AppRelease>> groupedReleases = {};
+    for (var release in _releases) {
+      groupedReleases.putIfAbsent(release.version, () => []).add(release);
+    }
+
+    final versions = groupedReleases.keys.toList();
+
     return ListView.builder(
-      itemCount: _releases.length,
+      itemCount: versions.length,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
-        final release = _releases[index];
-        return _buildReleaseItem(release);
+        final version = versions[index];
+        final releases = groupedReleases[version]!;
+        return _buildVersionGroup(version, releases);
       },
     );
   }
 
-  Widget _buildReleaseItem(AppRelease release) {
+  Widget _buildVersionGroup(String version, List<AppRelease> releases) {
+    // Check if any release in this version is installed
+    final isInstalled = releases.any((r) => r.status == UpdateStatus.installed);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+        backgroundColor: Colors.transparent,
+        collapsedBackgroundColor: Colors.transparent,
+        title: Text(
+          'v$version',
+          style: GoogleFonts.outfit(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isInstalled)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: const Text(
+                  'Installed',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            const Icon(Icons.expand_more),
+          ],
+        ),
+        children: [
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          ...releases.map((release) => _buildAbiItem(release)),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAbiItem(AppRelease release) {
     final key = release.downloadUrl;
     final isDownloading = _isDownloading[key] ?? false;
     final progress = _downloadProgress[key] ?? 0;
 
     Color statusColor;
     String statusLabel;
-    bool showButton = true;
     bool isButtonEnabled = true;
 
     switch (release.status) {
@@ -211,7 +275,7 @@ class _UpdatePageState extends State<UpdatePage> {
         break;
       case UpdateStatus.installed:
         statusColor = Colors.blue;
-        statusLabel = 'Installed';
+        statusLabel = 'Current Version';
         break;
       case UpdateStatus.unsupported:
         statusColor = Colors.grey;
@@ -220,131 +284,107 @@ class _UpdatePageState extends State<UpdatePage> {
         break;
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'v${release.version}',
+                      release.abi,
                       style: GoogleFonts.outfit(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      release.abi,
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: Colors.grey,
+                      statusLabel,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.5)),
-                  ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+              ),
+              if (isDownloading)
+                const SizedBox.shrink() // Progress bar handles actions below
+              else
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton(
+                    onPressed: isButtonEnabled
+                        ? () {
+                            if (release.isDownloaded && release.localPath != null) {
+                              _installApk(release.localPath!);
+                            } else {
+                              _handleDownload(release);
+                            }
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: release.status == UpdateStatus.update
+                          ? Colors.green
+                          : release.status == UpdateStatus.downgrade
+                              ? Colors.orange
+                              : Theme.of(context).colorScheme.primaryContainer,
+                      foregroundColor: (release.status == UpdateStatus.update ||
+                              release.status == UpdateStatus.downgrade)
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onPrimaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      release.isDownloaded
+                          ? 'Install'
+                          : release.status == UpdateStatus.installed
+                              ? 'Reinstall'
+                              : release.status == UpdateStatus.downgrade
+                                  ? 'Downgrade'
+                                  : 'Get Update',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
+                ),
+            ],
+          ),
+          if (isDownloading) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    borderRadius: BorderRadius.circular(8),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${(progress * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _cancelDownload(release),
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
                 ),
               ],
             ),
-            if (isDownloading) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      borderRadius: BorderRadius.circular(8),
-                      minHeight: 8,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text('${(progress * 100).toStringAsFixed(0)}%'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _cancelDownload(release),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Cancel Download'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ] else if (showButton) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: isButtonEnabled
-                      ? () {
-                          if (release.isDownloaded && release.localPath != null) {
-                            _installApk(release.localPath!);
-                          } else {
-                            _handleDownload(release);
-                          }
-                        }
-                      : null,
-                  icon: Icon(
-                    release.isDownloaded
-                        ? Icons.install_mobile
-                        : release.status == UpdateStatus.installed
-                            ? Icons.refresh
-                            : Icons.download,
-                  ),
-                  label: Text(
-                    release.isDownloaded
-                        ? 'Install'
-                        : release.status == UpdateStatus.installed
-                            ? 'Reinstall'
-                            : release.status == UpdateStatus.downgrade
-                                ? 'Downgrade'
-                                : 'Update Now',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    backgroundColor: release.status == UpdateStatus.update
-                        ? Colors.green
-                        : release.status == UpdateStatus.downgrade
-                            ? Colors.orange
-                            : null,
-                    foregroundColor: (release.status == UpdateStatus.update || release.status == UpdateStatus.downgrade)
-                        ? Colors.white
-                        : null,
-                  ),
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }

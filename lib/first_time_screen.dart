@@ -26,7 +26,10 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('App Secret must be at least 4 characters long', style: TextStyle(color: Colors.white)),
+              content: Text(
+                'App Secret must be at least 4 characters long',
+                style: TextStyle(color: Colors.white),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -37,7 +40,7 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('name', name);
       await prefs.setBool('is_logged_in', true);
-      
+
       // Save App Secret
       await SecretService.saveSecret(secret);
 
@@ -50,7 +53,7 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-           content: Text(
+          content: Text(
             'Please fill in both fields',
             style: TextStyle(color: Colors.white),
           ),
@@ -186,7 +189,7 @@ class _FirstTimeScreenState extends State<FirstTimeScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     Text(
                       'MASTER KEY',
                       style: GoogleFonts.montserrat(

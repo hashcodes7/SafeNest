@@ -38,10 +38,11 @@ class SnackbarHelper {
   }
 
   static void showError(BuildContext context, String title, String message) {
+    debugPrint('PRODUCTION ERROR LOG [$title]: $message'); // Technical log
     showAwesomeSnackbar(
       context,
       title: title,
-      message: message,
+      message: 'Something went wrong. Please try again.', // Generic UI
       contentType: ContentType.failure,
     );
   }

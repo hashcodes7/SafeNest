@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 import 'models/field.dart';
 import 'providers/user_provider.dart';
@@ -245,6 +247,21 @@ class _FieldTileState extends State<_FieldTile> {
     }
   }
 
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        SnackbarHelper.showError(context, 'Error', 'Could not launch $url');
+      }
+    }
+  }
+
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.mediumImpact();
+    SnackbarHelper.showInfo(context, 'Copied', 'Description copied to clipboard!');
+  }
+
   @override
   Widget build(BuildContext context) {
     final field = widget.field;
@@ -318,127 +335,224 @@ class _FieldTileState extends State<_FieldTile> {
           }
           return false;
         },
-        child: Column(
-          children: [
-            if (field.thumbnailUrl != null)
-              Stack(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
-                    child: AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 300),
-                      crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                      firstChild: field.thumbnailUrl!.startsWith('http')
-                        ? Image.network(
-                            field.thumbnailUrl!,
-                            width: double.infinity,
-                            height: 180,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const SizedBox(
-                              height: 180,
-                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                            ),
-                          )
-                        : Image.file(
-                            File(field.thumbnailUrl!),
-                            width: double.infinity,
-                            height: 180,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const SizedBox(
-                              height: 180,
-                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                            ),
-                          ),
-                      secondChild: field.thumbnailUrl!.startsWith('http')
-                        ? Image.network(
-                            field.thumbnailUrl!,
-                            width: double.infinity,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const SizedBox(
-                              height: 180,
-                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                            ),
-                          )
-                        : Image.file(
-                            File(field.thumbnailUrl!),
-                            width: double.infinity,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const SizedBox(
-                              height: 180,
-                              child: Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                            ),
-                          ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isExpanded = !_isExpanded;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-              child: ListTile(
-                title: _buildExpandableText(field.fieldName, const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: GestureDetector(
+          onTap: () {
+            if (field.url != null && field.url!.startsWith('http')) {
+              HapticFeedback.lightImpact();
+              _launchUrl(field.url!);
+            } else {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            }
+          },
+          onDoubleTap: () {
+            if (field.description != null && field.description!.isNotEmpty) {
+              _copyToClipboard(field.description!);
+            }
+          },
+          child: Column(
+            children: [
+              if (field.thumbnailUrl != null)
+                Stack(
                   children: [
-                    if (field.url != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          '${field.url}',
-                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    AnimatedCrossFade(
+                      duration: const Duration(milliseconds: 300),
+                      crossFadeState: _isExpanded
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      firstChild: field.thumbnailUrl!.startsWith('http')
+                          ? Image.network(
+                              field.thumbnailUrl!,
+                              width: double.infinity,
+                              height: 180,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const SizedBox(
+                                    height: 180,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                            )
+                          : Image.file(
+                              File(field.thumbnailUrl!),
+                              width: double.infinity,
+                              height: 180,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const SizedBox(
+                                    height: 180,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                      secondChild: field.thumbnailUrl!.startsWith('http')
+                          ? Image.network(
+                              field.thumbnailUrl!,
+                              width: double.infinity,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const SizedBox(
+                                    height: 180,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                            )
+                          : Image.file(
+                              File(field.thumbnailUrl!),
+                              width: double.infinity,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const SizedBox(
+                                    height: 180,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Row(
+                        children: [
+                          if (field.description != null && field.description!.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.content_copy_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                onPressed: () => _copyToClipboard(field.description!),
+                                tooltip: 'Copy Description',
+                              ),
+                            ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                _isExpanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    if (field.description != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: _buildExpandableText(
-                          field.description!,
-                          TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ),
-                    if (field.fieldName.length > 200 || (field.description?.length ?? 0) > 200)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isExpanded = !_isExpanded;
-                            });
-                          },
-                          child: Text(_isExpanded ? 'Show Less' : 'Show More'),
-                        ),
-                      ),
+                    ),
                   ],
                 ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8.0,
+                  horizontal: 4.0,
+                ),
+                child: ListTile(
+                  trailing: (field.thumbnailUrl == null && field.description != null && field.description!.isNotEmpty)
+                      ? IconButton(
+                          icon: const Icon(Icons.content_copy_rounded, size: 20),
+                          onPressed: () => _copyToClipboard(field.description!),
+                          tooltip: 'Copy Description',
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : null,
+                  title: _buildExpandableText(
+                    field.fieldName,
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (field.url != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            '${field.url}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      if (field.description != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: _buildExpandableText(
+                            field.description!,
+                            TextStyle(
+                              fontSize: 15,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      if (field.fieldName.length > 200 ||
+                          (field.description?.length ?? 0) > 200)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (field.thumbnailUrl == null && field.description != null && field.description!.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.content_copy_rounded, size: 20),
+                                onPressed: () => _copyToClipboard(field.description!),
+                                tooltip: 'Copy Description',
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                              child:
+                                  Text(_isExpanded ? 'Show Less' : 'Show More'),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
