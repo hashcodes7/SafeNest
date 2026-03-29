@@ -23,7 +23,6 @@ jobs:
           channel: stable
           cache: true
 
-      # Cache Flutter pub dependencies
       - name: Cache Pub dependencies
         uses: actions/cache@v4
         with:
@@ -32,7 +31,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      # Cache Gradle (Android build system)
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -46,13 +44,26 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # 🔑 Recreate the keystore from GitHub secret
+      - name: Decode Android keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
+
+      # 🔑 Create key.properties for Gradle signing
+      - name: Create key.properties
+        run: |
+          echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
+
       - name: Extract version from pubspec
         id: version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d '+' -f1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Build APKs
+      - name: Build Signed APKs
         run: flutter build apk --release --split-per-abi
 
       - name: Rename APKs
@@ -62,7 +73,7 @@ jobs:
           mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk safenest_${VERSION}_armeabi-v7a.apk
           mv build/app/outputs/flutter-apk/app-x86_64-release.apk safenest_${VERSION}_x86_64.apk
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
